@@ -62,12 +62,14 @@ calorie-tracker/
 1. `pages/3_Daily_Summary.py` calls `calculations.macros_for_date` for today
 2. Progress bars show calories/protein/carbs/fats vs targets (remaining + %)
 3. Lists today's `logged_entries` (food name, amount in the unit it was logged, calories) via `get_entries_for_date`
+4. Delete button on each row opens an Are you sure? dialog, then `delete_logged_entry` (removes the log, not the food library item)
 
 ### Manual workflow
 1. User enters name, label serving size (g or oz), and nutrition per serving → `foods` (source = `manual`). Serving is stored as grams (`1 oz = 28.3495 g`) plus `serving_unit` for display
 2. Amount eaten (g or oz) is converted to grams. `calculations.scale_macros` scales by `eaten_grams / serving_grams`
 3. `db.py` writes `logged_entries` for today with `weight_unit`
 4. Reusable: search `foods`, pick one, enter amount (unit defaults to that food's `serving_unit`), log again
+5. Delete from library opens an Are you sure? dialog, then `delete_food` (clears `food_id` on existing logs so the row can be removed; log macros stay)
 
 ### OCR workflow
 1. User photos nutrition label → `ocr.py` sends to Gemini → parsed nutrition facts

@@ -43,6 +43,11 @@ def get_all_foods() -> list[dict]:
     return res.data
 
 
+def delete_food(food_id: str) -> None:
+    _client.table("logged_entries").update({"food_id": None}).eq("food_id", food_id).execute()
+    _client.table("foods").delete().eq("id", food_id).execute()
+
+
 # ── Meals ──────────────────────────────────────────────────────────────────────
 
 def insert_meal(meal: Meal) -> dict:

@@ -3,7 +3,7 @@ from datetime import date
 import streamlit as st
 from models.schemas import Food, LoggedEntry
 from services.calculations import format_weight, scale_macros, to_grams
-from services.db import get_all_foods, insert_food, insert_logged_entry, search_foods
+from services.db import delete_food, get_all_foods, insert_food, insert_logged_entry, search_foods
 
 st.set_page_config(page_title="Log Food", layout="centered")
 st.title("Log Food")
@@ -23,6 +23,17 @@ def log_today(food: dict, eaten_grams: float, unit: str) -> None:
             weight_unit=unit,
         )
     )
+
+
+@st.dialog("Are you sure?")
+def confirm_delete_food(food_id: str, name: str) -> None:
+    st.write(f"Delete **{name}** from the library?")
+    with st.container(horizontal=True):
+        if st.button("Cancel"):
+            st.rerun()
+        if st.button("Delete", type="primary"):
+            delete_food(food_id)
+            st.rerun()
 
 
 st.subheader("From library")
@@ -46,10 +57,15 @@ else:
     lib_unit = st.segmented_control(
         "Unit", ["g", "oz"], default=serving_unit, key=f"lib_unit_{food_id}"
     )
-    if st.button("Log"):
+    with st.container(horizontal=True):
+        log_clicked = st.button("Log")
+        del_clicked = st.button("Delete from library")
+    if log_clicked:
         unit = lib_unit or serving_unit
         log_today(food, to_grams(lib_eaten, unit), unit)
         st.success("Logged.")
+    if del_clicked:
+        confirm_delete_food(food_id, food["name"])
 
 st.subheader("New food")
 with st.form("new_food"):
