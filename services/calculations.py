@@ -1,12 +1,31 @@
 from services.db import get_entries_for_date, get_goals
 
 _KEYS = ("calories", "protein", "carbs", "fats")
+OZ_TO_G = 28.3495
 _GOAL_KEYS = {
     "calories": "calorie_target",
     "protein": "protein_target",
     "carbs": "carbs_target",
     "fats": "fats_target",
 }
+
+
+def to_grams(amount: float, unit: str) -> float:
+    """Convert an amount in g or oz to grams."""
+    return amount * OZ_TO_G if unit == "oz" else amount
+
+
+def format_weight(grams: float, unit: str) -> str:
+    """Format stored grams using the unit they were logged in."""
+    if unit == "oz":
+        return f"{grams / OZ_TO_G:g} oz"
+    return f"{grams:g} g"
+
+
+def scale_macros(food: dict, eaten_grams: float) -> dict:
+    """Scale a food's per-serving macros to the grams eaten."""
+    factor = eaten_grams / float(food["serving_grams"])
+    return {k: float(food[k]) * factor for k in _KEYS}
 
 
 def sum_macros(entries: list[dict]) -> dict:

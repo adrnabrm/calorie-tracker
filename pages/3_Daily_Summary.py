@@ -1,10 +1,22 @@
 from datetime import date
 
 import streamlit as st
-from services.calculations import macros_for_date
+from services.calculations import format_weight, macros_for_date
+from services.db import delete_logged_entry, get_entries_for_date, get_food_by_id
 
 st.set_page_config(page_title="Daily Summary", layout="centered")
 st.title("Daily Summary")
+
+
+@st.dialog("Are you sure?")
+def confirm_delete_log(entry_id: str, name: str) -> None:
+    st.write(f"Delete **{name}** from today's log?")
+    with st.container(horizontal=True):
+        if st.button("Cancel", key="log_del_cancel"):
+            st.rerun()
+        if st.button("Delete", type="primary", key="log_del_ok"):
+            delete_logged_entry(entry_id)
+            st.rerun()
 
 today = date.today().isoformat()
 st.caption(today)
@@ -27,3 +39,22 @@ else:
         pct = min(stats["pct"][key] / 100.0, 1.0)
         st.write(f"**{label}** — {eaten:.0f} / {target:.0f} ({remaining:.0f} left)")
         st.progress(pct)
+
+st.subheader("Logged")
+entries = get_entries_for_date(today)
+if not entries:
+    st.info("Nothing logged today.")
+else:
+    to_delete = None
+    for entry in entries:
+        food = get_food_by_id(entry["food_id"]) if entry.get("food_id") else None
+        name = (food or {}).get("name") or "Unknown"
+        with st.container(horizontal=True, vertical_alignment="center"):
+            st.write(
+                f"**{name}** — {format_weight(float(entry['weight_grams']), entry.get('weight_unit') or 'g')}, "
+                f"{float(entry['calories']):.0f} cal"
+            )
+            if st.button("Delete", key=f"del_{entry['id']}"):
+                to_delete = (entry["id"], name)
+    if to_delete:
+        confirm_delete_log(*to_delete)

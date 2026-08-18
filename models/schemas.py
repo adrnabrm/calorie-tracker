@@ -9,6 +9,8 @@ class Food:
     protein: float
     carbs: float
     fats: float
+    serving_grams: float
+    serving_unit: Literal["g", "oz"]
     source: Literal["manual", "vision", "ocr", "estimated"]
     id: Optional[str] = None
 
@@ -37,6 +39,7 @@ class LoggedEntry:
     fats: float
     food_id: Optional[str] = None
     meal_id: Optional[str] = None
+    weight_unit: Literal["g", "oz"] = "g"
     id: Optional[str] = None
 
 

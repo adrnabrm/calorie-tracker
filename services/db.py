@@ -14,6 +14,8 @@ def insert_food(food: Food) -> dict:
         "protein": food.protein,
         "carbs": food.carbs,
         "fats": food.fats,
+        "serving_grams": food.serving_grams,
+        "serving_unit": food.serving_unit,
         "source": food.source,
     }
     res = _client.table("foods").insert(row).execute()
@@ -39,6 +41,11 @@ def search_foods(query: str) -> list[dict]:
 def get_all_foods() -> list[dict]:
     res = _client.table("foods").select("*").order("name").execute()
     return res.data
+
+
+def delete_food(food_id: str) -> None:
+    _client.table("logged_entries").update({"food_id": None}).eq("food_id", food_id).execute()
+    _client.table("foods").delete().eq("id", food_id).execute()
 
 
 # ── Meals ──────────────────────────────────────────────────────────────────────
@@ -93,6 +100,7 @@ def insert_logged_entry(entry: LoggedEntry) -> dict:
         "protein": entry.protein,
         "carbs": entry.carbs,
         "fats": entry.fats,
+        "weight_unit": entry.weight_unit,
     }
     res = _client.table("logged_entries").insert(row).execute()
     return res.data[0]

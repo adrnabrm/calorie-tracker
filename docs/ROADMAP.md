@@ -18,14 +18,14 @@ Adrian, here's the implementation roadmap I'd suggest, broken into phases you ca
 
 ---
 
-**Phase 2 — Goals & Daily Summary** *(easiest pages, validates DB layer)*
+**DONE Phase 2 — Goals & Daily Summary** *(easiest pages, validates DB layer)*
 - `pages/5_Goals_Settings.py` — form to set calorie/macro targets, saves to `goals` table
 - `services/calculations.py` — macro math (sum logged entries for a date, compare to goals)
 - `pages/3_Daily_Summary.py` — pulls today's logged entries, renders progress bars vs goals
 
 ---
 
-**Phase 3 — Manual food logging** *(core loop without any AI)*
+**DONE Phase 3 — Manual food logging** *(core loop without any AI)*
 - `pages/1_Log_Food.py` — manual entry tab: name + cal/protein/carbs/fats form, saves to `foods` + `logged_entries`
 - Searchable food library (pull existing `foods` rows, let user re-log without re-entering)
 - This gives you a fully working tracker before touching any AI
