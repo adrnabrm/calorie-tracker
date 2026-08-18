@@ -32,8 +32,9 @@ Adrian, here's the implementation roadmap I'd suggest, broken into phases you ca
 
 ---
 
-**Phase 4 — Weight tracking** *(isolated, no dependencies)*
-- `pages/4_Weight_Tracker.py` — manual weight entry, line chart over time using `weight_logs`
+**DONE Phase 4 — Weight tracking** *(isolated, no dependencies)*
+- Unique `weight_logs.date`; `upsert_weight_log` overwrites same day; `delete_weight_log`
+- `pages/4_Weight_Tracker.py` — date + lbs form, latest/delta metric, line chart, delete list
 
 ---
 

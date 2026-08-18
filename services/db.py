@@ -123,15 +123,37 @@ def delete_logged_entry(entry_id: str) -> None:
 
 # ── Weight Logs ────────────────────────────────────────────────────────────────
 
-def insert_weight_log(log: WeightLog) -> dict:
-    row = {"date": log.date, "weight": log.weight}
-    res = _client.table("weight_logs").insert(row).execute()
+def upsert_weight_log(log: WeightLog) -> dict:
+    existing = (
+        _client.table("weight_logs")
+        .select("id")
+        .eq("date", log.date)
+        .limit(1)
+        .execute()
+    )
+    if existing.data:
+        res = (
+            _client.table("weight_logs")
+            .update({"weight": log.weight})
+            .eq("id", existing.data[0]["id"])
+            .execute()
+        )
+        return res.data[0]
+    res = (
+        _client.table("weight_logs")
+        .insert({"date": log.date, "weight": log.weight})
+        .execute()
+    )
     return res.data[0]
 
 
 def get_all_weight_logs() -> list[dict]:
     res = _client.table("weight_logs").select("*").order("date").execute()
     return res.data
+
+
+def delete_weight_log(log_id: str) -> None:
+    _client.table("weight_logs").delete().eq("id", log_id).execute()
 
 
 # ── Goals ──────────────────────────────────────────────────────────────────────
