@@ -38,17 +38,18 @@ Adrian, here's the implementation roadmap I'd suggest, broken into phases you ca
 
 ---
 
-**Phase 5 — Vision food detection** *(first AI integration)*
+**DONE Phase 5 — OCR label scanning** *(first AI integration)*
+- `models/schemas.py` — `NutritionLabel` Pydantic model (serving + macros, no name)
+- `services/ocr.py` — Gemini Interactions structured output via `NutritionLabel.model_json_schema()` / `model_validate_json`
+- `pages/2_Scan_Label.py` — camera or upload → Read label → confirm (user types name) → `foods` with `source: ocr`
+
+---
+
+**Phase 6 — Vision food detection**
 - `services/nutrition_api.py` — USDA FoodData Central search + lookup
 - `services/estimator.py` — Gemini fallback when USDA misses, flags result as `estimated`
 - `services/vision.py` — Gemini vision call, structured output (list of detected food names)
 - Wire into `pages/1_Log_Food.py` as a "Photo" tab: capture → detect → USDA lookup (or fallback) → user confirms weights → log
-
----
-
-**Phase 6 — OCR label scanning**
-- `services/ocr.py` — Gemini vision call with a label-reading prompt, parses nutrition facts
-- `pages/2_Scan_Label.py` — capture label photo → OCR → save as `source: ocr` food entry
 
 ---
 

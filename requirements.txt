@@ -1,5 +1,6 @@
 streamlit==1.61.1
 supabase==2.31.0
 google-genai==2.18.1
+pydantic==2.12.4
 requests==2.32.3
 python-dotenv==1.0.1
