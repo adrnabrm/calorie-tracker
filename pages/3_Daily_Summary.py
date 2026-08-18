@@ -2,6 +2,7 @@ from datetime import date
 
 import streamlit as st
 from services.calculations import macros_for_date
+from services.db import get_entries_for_date, get_food_by_id
 
 st.set_page_config(page_title="Daily Summary", layout="centered")
 st.title("Daily Summary")
@@ -27,3 +28,16 @@ else:
         pct = min(stats["pct"][key] / 100.0, 1.0)
         st.write(f"**{label}** — {eaten:.0f} / {target:.0f} ({remaining:.0f} left)")
         st.progress(pct)
+
+st.subheader("Logged")
+entries = get_entries_for_date(today)
+if not entries:
+    st.info("Nothing logged today.")
+else:
+    for entry in entries:
+        food = get_food_by_id(entry["food_id"]) if entry.get("food_id") else None
+        name = (food or {}).get("name") or "Unknown"
+        st.write(
+            f"**{name}** — {float(entry['weight_grams']):g} g, "
+            f"{float(entry['calories']):.0f} cal"
+        )

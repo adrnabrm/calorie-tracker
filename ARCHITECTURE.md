@@ -61,6 +61,7 @@ calorie-tracker/
 ### Daily summary
 1. `pages/3_Daily_Summary.py` calls `calculations.macros_for_date` for today
 2. Progress bars show calories/protein/carbs/fats vs targets (remaining + %)
+3. Lists today's `logged_entries` (food name, grams eaten, calories) via `get_entries_for_date`
 
 ### Manual workflow
 1. User enters name, label serving size (g or oz), and nutrition per serving → `foods` (source = `manual`). Serving is stored as grams (`1 oz = 28.3495 g`)
