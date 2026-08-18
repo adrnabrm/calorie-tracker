@@ -58,6 +58,10 @@ calorie-tracker/
 3. On USDA miss → `estimator.py` (Gemini fallback, source = `estimated`)
 4. User confirms weights → `calculations.py` computes totals → `db.py` writes `logged_entries`
 
+### Daily summary
+1. `db.get_entries_for_date` + `db.get_goals`
+2. `calculations.macros_for_date` sums calories/macros and compares to targets (remaining + %)
+
 ### Manual workflow
 1. User enters food name + nutrition data → saved to `foods` (source = `manual`)
 2. Reusable: searchable from `foods` table for future log entries
