@@ -47,7 +47,7 @@ calorie-tracker/
 - `meals` — `id, name, type: composed|simple`
 - `meal_ingredients` — `meal_id, food_id, weight_grams` (join table for composed meals)
 - `logged_entries` — `id, date, food_id?, meal_id?, weight_grams, weight_unit: g|oz, calories, protein, carbs, fats`
-- `weight_logs` — `id, date, weight`
+- `weight_logs` — `id, date` (unique), `weight` (lbs)
 - `goals` — `calorie_target, protein_target, carbs_target, fats_target`
 
 ## Data Flow
@@ -70,6 +70,12 @@ calorie-tracker/
 3. `db.py` writes `logged_entries` for today with `weight_unit`
 4. Reusable: search `foods`, pick one, enter amount (unit defaults to that food's `serving_unit`), log again
 5. Delete from library opens an Are you sure? dialog, then `delete_food` (clears `food_id` on existing logs so the row can be removed; log macros stay)
+
+### Weight tracking
+1. `pages/4_Weight_Tracker.py` form: date (default today) + weight in lbs → `upsert_weight_log` (one row per date; second save overwrites)
+2. Latest log shown as a metric with delta vs the previous log (down is green)
+3. Line chart of all `weight_logs` over time (`get_all_weight_logs`, ordered by date)
+4. List newest-first; delete opens an Are you sure? dialog, then `delete_weight_log`
 
 ### OCR workflow
 1. User photos nutrition label → `ocr.py` sends to Gemini → parsed nutrition facts
