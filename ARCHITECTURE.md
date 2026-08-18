@@ -59,8 +59,8 @@ calorie-tracker/
 4. User confirms weights → `calculations.py` computes totals → `db.py` writes `logged_entries`
 
 ### Daily summary
-1. `db.get_entries_for_date` + `db.get_goals`
-2. `calculations.macros_for_date` sums calories/macros and compares to targets (remaining + %)
+1. `pages/3_Daily_Summary.py` calls `calculations.macros_for_date` for today
+2. Progress bars show calories/protein/carbs/fats vs targets (remaining + %)
 
 ### Manual workflow
 1. User enters food name + nutrition data → saved to `foods` (source = `manual`)
