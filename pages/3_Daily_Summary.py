@@ -1,8 +1,8 @@
 from datetime import date
 
 import streamlit as st
-from services.calculations import format_weight, macros_for_date
-from services.db import delete_logged_entry, get_entries_for_date, get_food_by_id
+from services.calculations import format_weight, macros_from_entries
+from services.db import delete_logged_entry, get_entries_for_date
 
 st.set_page_config(page_title="Daily Summary", layout="centered")
 st.title("Daily Summary")
@@ -21,7 +21,8 @@ def confirm_delete_log(entry_id: str, name: str) -> None:
 today = date.today().isoformat()
 st.caption(today)
 
-stats = macros_for_date(today)
+entries = get_entries_for_date(today)
+stats = macros_from_entries(entries)
 
 if not stats["targets"]:
     st.info("Set your targets on the Goals & Settings page first.")
@@ -41,14 +42,15 @@ else:
         st.progress(pct)
 
 st.subheader("Logged")
-entries = get_entries_for_date(today)
 if not entries:
     st.info("Nothing logged today.")
 else:
     to_delete = None
     for entry in entries:
-        food = get_food_by_id(entry["food_id"]) if entry.get("food_id") else None
-        name = (food or {}).get("name") or "Unknown"
+        food = entry.get("foods") or {}
+        if isinstance(food, list):
+            food = food[0] if food else {}
+        name = food.get("name") or "Unknown"
         with st.container(horizontal=True, vertical_alignment="center"):
             st.write(
                 f"**{name}** — {format_weight(float(entry['weight_grams']), entry.get('weight_unit') or 'g')}, "
