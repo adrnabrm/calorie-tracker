@@ -35,12 +35,15 @@ with st.form("goals_form"):
     submitted = st.form_submit_button("Save")
 
 if submitted:
-    upsert_goals(
-        Goals(
-            calorie_target=calorie_target,
-            protein_target=protein_target,
-            carbs_target=carbs_target,
-            fats_target=fats_target,
+    if calorie_target <= 0:
+        st.warning("Enter a calorie target.")
+    else:
+        upsert_goals(
+            Goals(
+                calorie_target=calorie_target,
+                protein_target=protein_target,
+                carbs_target=carbs_target,
+                fats_target=fats_target,
+            )
         )
-    )
-    st.success("Goals saved.")
+        st.success("Goals saved.")

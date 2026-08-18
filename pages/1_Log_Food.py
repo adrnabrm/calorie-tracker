@@ -98,21 +98,24 @@ with st.form("new_food"):
     submitted = st.form_submit_button("Save and log")
 
 if submitted:
-    unit = serving_unit or "g"
-    eaten_unit = new_unit or unit
-    serving_grams = to_grams(serving_size, unit)
-    row = insert_food(
-        Food(
-            name=name,
-            calories=calories,
-            protein=protein,
-            carbs=carbs,
-            fats=fats,
-            serving_grams=serving_grams,
-            serving_unit=unit,
-            source="manual",
+    if not name.strip():
+        st.warning("Enter a name.")
+    else:
+        unit = serving_unit or "g"
+        eaten_unit = new_unit or unit
+        serving_grams = to_grams(serving_size, unit)
+        row = insert_food(
+            Food(
+                name=name.strip(),
+                calories=calories,
+                protein=protein,
+                carbs=carbs,
+                fats=fats,
+                serving_grams=serving_grams,
+                serving_unit=unit,
+                source="manual",
+            )
         )
-    )
-    log_today(row, to_grams(new_eaten, eaten_unit), eaten_unit)
-    load_foods.clear()
-    st.success("Saved and logged.")
+        log_today(row, to_grams(new_eaten, eaten_unit), eaten_unit)
+        load_foods.clear()
+        st.success("Saved and logged.")
