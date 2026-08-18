@@ -43,10 +43,10 @@ calorie-tracker/
 
 ## Database Schema (Supabase)
 
-- `foods` — `id, name, calories, protein, carbs, fats, serving_grams, source: manual|vision|ocr|estimated`
+- `foods` — `id, name, calories, protein, carbs, fats, serving_grams, serving_unit: g|oz, source: manual|vision|ocr|estimated`
 - `meals` — `id, name, type: composed|simple`
 - `meal_ingredients` — `meal_id, food_id, weight_grams` (join table for composed meals)
-- `logged_entries` — `id, date, food_id?, meal_id?, weight_grams, calories, protein, carbs, fats`
+- `logged_entries` — `id, date, food_id?, meal_id?, weight_grams, weight_unit: g|oz, calories, protein, carbs, fats`
 - `weight_logs` — `id, date, weight`
 - `goals` — `calorie_target, protein_target, carbs_target, fats_target`
 
@@ -61,13 +61,13 @@ calorie-tracker/
 ### Daily summary
 1. `pages/3_Daily_Summary.py` calls `calculations.macros_for_date` for today
 2. Progress bars show calories/protein/carbs/fats vs targets (remaining + %)
-3. Lists today's `logged_entries` (food name, grams eaten, calories) via `get_entries_for_date`
+3. Lists today's `logged_entries` (food name, amount in the unit it was logged, calories) via `get_entries_for_date`
 
 ### Manual workflow
-1. User enters name, label serving size (g or oz), and nutrition per serving → `foods` (source = `manual`). Serving is stored as grams (`1 oz = 28.3495 g`)
+1. User enters name, label serving size (g or oz), and nutrition per serving → `foods` (source = `manual`). Serving is stored as grams (`1 oz = 28.3495 g`) plus `serving_unit` for display
 2. Amount eaten (g or oz) is converted to grams. `calculations.scale_macros` scales by `eaten_grams / serving_grams`
-3. `db.py` writes `logged_entries` for today
-4. Reusable: search `foods`, pick one, enter amount, log again
+3. `db.py` writes `logged_entries` for today with `weight_unit`
+4. Reusable: search `foods`, pick one, enter amount (unit defaults to that food's `serving_unit`), log again
 
 ### OCR workflow
 1. User photos nutrition label → `ocr.py` sends to Gemini → parsed nutrition facts

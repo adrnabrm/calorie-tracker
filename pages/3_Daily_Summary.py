@@ -1,7 +1,7 @@
 from datetime import date
 
 import streamlit as st
-from services.calculations import macros_for_date
+from services.calculations import format_weight, macros_for_date
 from services.db import get_entries_for_date, get_food_by_id
 
 st.set_page_config(page_title="Daily Summary", layout="centered")
@@ -38,6 +38,6 @@ else:
         food = get_food_by_id(entry["food_id"]) if entry.get("food_id") else None
         name = (food or {}).get("name") or "Unknown"
         st.write(
-            f"**{name}** — {float(entry['weight_grams']):g} g, "
+            f"**{name}** — {format_weight(float(entry['weight_grams']), entry.get('weight_unit') or 'g')}, "
             f"{float(entry['calories']):.0f} cal"
         )

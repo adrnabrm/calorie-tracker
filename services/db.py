@@ -15,6 +15,7 @@ def insert_food(food: Food) -> dict:
         "carbs": food.carbs,
         "fats": food.fats,
         "serving_grams": food.serving_grams,
+        "serving_unit": food.serving_unit,
         "source": food.source,
     }
     res = _client.table("foods").insert(row).execute()
@@ -94,6 +95,7 @@ def insert_logged_entry(entry: LoggedEntry) -> dict:
         "protein": entry.protein,
         "carbs": entry.carbs,
         "fats": entry.fats,
+        "weight_unit": entry.weight_unit,
     }
     res = _client.table("logged_entries").insert(row).execute()
     return res.data[0]

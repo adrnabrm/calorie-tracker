@@ -15,6 +15,13 @@ def to_grams(amount: float, unit: str) -> float:
     return amount * OZ_TO_G if unit == "oz" else amount
 
 
+def format_weight(grams: float, unit: str) -> str:
+    """Format stored grams using the unit they were logged in."""
+    if unit == "oz":
+        return f"{grams / OZ_TO_G:g} oz"
+    return f"{grams:g} g"
+
+
 def scale_macros(food: dict, eaten_grams: float) -> dict:
     """Scale a food's per-serving macros to the grams eaten."""
     factor = eaten_grams / float(food["serving_grams"])
