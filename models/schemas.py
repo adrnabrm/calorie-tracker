@@ -9,6 +9,7 @@ class Food:
     protein: float
     carbs: float
     fats: float
+    serving_grams: float
     source: Literal["manual", "vision", "ocr", "estimated"]
     id: Optional[str] = None
 

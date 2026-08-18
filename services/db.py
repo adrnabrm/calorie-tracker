@@ -14,6 +14,7 @@ def insert_food(food: Food) -> dict:
         "protein": food.protein,
         "carbs": food.carbs,
         "fats": food.fats,
+        "serving_grams": food.serving_grams,
         "source": food.source,
     }
     res = _client.table("foods").insert(row).execute()
