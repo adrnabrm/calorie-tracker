@@ -28,6 +28,7 @@ calorie-tracker/
 │
 ├── services/                 # All business logic, no UI code
 │   ├── db.py                 # Supabase client + CRUD
+│   ├── gemini.py             # Shared Gemini client + generate() (Pydantic structured output)
 │   ├── vision.py             # Gemini: food detection from photo
 │   ├── ocr.py                # Gemini: nutrition label reading
 │   ├── nutrition_api.py      # USDA FoodData Central lookups
@@ -35,7 +36,7 @@ calorie-tracker/
 │   └── calculations.py       # Macro/calorie math
 │
 ├── models/
-│   └── schemas.py            # Dataclasses mirroring Supabase tables
+│   └── schemas.py            # Dataclasses mirroring Supabase tables + NutritionLabel (Pydantic)
 │
 └── utils/
     └── config.py             # Loads env vars / API keys
@@ -78,8 +79,10 @@ calorie-tracker/
 4. List newest-first; delete opens an Are you sure? dialog, then `delete_weight_log`
 
 ### OCR workflow
-1. User photos nutrition label → `ocr.py` sends to Gemini → parsed nutrition facts
-2. Saved as `foods` entry (source = `ocr`), then logged via `logged_entries`
+1. User photos or uploads a nutrition label on `pages/2_Scan_Label.py`
+2. **Read label** → `ocr.py` calls `gemini.generate` (`gemini-3.1-flash-lite`, Interactions API) with `NutritionLabel` as the Pydantic JSON schema (`model_json_schema()` / `model_validate_json`). API/parse failures raise `GeminiError` (shown as "Gemini request failed"); a successful read with `found_label=false` is a different path
+3. Schema is serving size/unit + per-serving calories/protein/carbs/fats and `found_label`. Name is not extracted
+4. Confirm form: user types the name and can edit the numbers, then `insert_food` with source = `ocr`. Nothing is written to `logged_entries` (log later from Log Food)
 
 ## Implementation Phases
 
@@ -90,6 +93,6 @@ calorie-tracker/
 | 2 | Goals & Daily Summary pages |
 | 3 | Manual food logging |
 | 4 | Weight tracking |
-| 5 | Vision food detection (Gemini + USDA) |
-| 6 | OCR label scanning |
+| 5 | OCR label scanning |
+| 6 | Vision food detection (Gemini + USDA) |
 | 7 | Polish + Streamlit Community Cloud deploy |
