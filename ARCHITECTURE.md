@@ -59,7 +59,7 @@ calorie-tracker/
 4. User confirms weights → `calculations.py` computes totals → `db.py` writes `logged_entries`
 
 ### Daily summary
-1. `pages/3_Daily_Summary.py` calls `calculations.macros_for_date` for today
+1. `pages/3_Daily_Summary.py` loads today's entries once (`get_entries_for_date` joins `foods(name)`) and `calculations.macros_from_entries` sums them vs goals
 2. Progress bars show calories/protein/carbs/fats vs targets (remaining + %)
 3. Lists today's `logged_entries` (food name, amount in the unit it was logged, calories) via `get_entries_for_date`
 4. Delete button on each row opens an Are you sure? dialog, then `delete_logged_entry` (removes the log, not the food library item)

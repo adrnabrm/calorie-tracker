@@ -3,7 +3,7 @@ from datetime import date
 import streamlit as st
 from models.schemas import Food, LoggedEntry
 from services.calculations import format_weight, scale_macros, to_grams
-from services.db import delete_food, get_all_foods, insert_food, insert_logged_entry, search_foods
+from services.db import delete_food, get_all_foods, insert_food, insert_logged_entry
 
 st.set_page_config(page_title="Log Food", layout="centered")
 st.title("Log Food")
@@ -33,12 +33,21 @@ def confirm_delete_food(food_id: str, name: str) -> None:
             st.rerun()
         if st.button("Delete", type="primary"):
             delete_food(food_id)
+            load_foods.clear()
             st.rerun()
+
+
+@st.cache_data(ttl=60)
+def load_foods() -> list[dict]:
+    return get_all_foods()
 
 
 st.subheader("From library")
 query = st.text_input("Search")
-foods = search_foods(query) if query else get_all_foods()
+foods = load_foods()
+if query:
+    q = query.lower()
+    foods = [f for f in foods if q in f["name"].lower()]
 if not foods:
     st.info("No matching foods." if query else "No foods yet. Add one below.")
 else:
@@ -105,4 +114,5 @@ if submitted:
         )
     )
     log_today(row, to_grams(new_eaten, eaten_unit), eaten_unit)
+    load_foods.clear()
     st.success("Saved and logged.")

@@ -44,10 +44,15 @@ def compare_to_goals(totals: dict, goals: dict) -> dict:
     }
 
 
-def macros_for_date(date: str) -> dict:
-    """Sum that day's logged entries and compare them to saved goals."""
-    totals = sum_macros(get_entries_for_date(date))
+def macros_from_entries(entries: list[dict]) -> dict:
+    """Sum entries and compare them to saved goals."""
+    totals = sum_macros(entries)
     goals = get_goals()
     if not goals:
         return {"eaten": totals, "targets": None, "remaining": None, "pct": None}
     return compare_to_goals(totals, goals)
+
+
+def macros_for_date(date: str) -> dict:
+    """Sum that day's logged entries and compare them to saved goals."""
+    return macros_from_entries(get_entries_for_date(date))
