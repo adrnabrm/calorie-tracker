@@ -1,0 +1,150 @@
+from supabase import create_client, Client
+from utils.config import SUPABASE_URL, SUPABASE_KEY
+from models.schemas import Food, Meal, MealIngredient, LoggedEntry, WeightLog, Goals
+
+_client: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+
+# ── Foods ──────────────────────────────────────────────────────────────────────
+
+def insert_food(food: Food) -> dict:
+    row = {
+        "name": food.name,
+        "calories": food.calories,
+        "protein": food.protein,
+        "carbs": food.carbs,
+        "fats": food.fats,
+        "source": food.source,
+    }
+    res = _client.table("foods").insert(row).execute()
+    return res.data[0]
+
+
+def get_food_by_id(food_id: str) -> dict | None:
+    res = _client.table("foods").select("*").eq("id", food_id).execute()
+    return res.data[0] if res.data else None
+
+
+def search_foods(query: str) -> list[dict]:
+    res = (
+        _client.table("foods")
+        .select("*")
+        .ilike("name", f"%{query}%")
+        .order("name")
+        .execute()
+    )
+    return res.data
+
+
+def get_all_foods() -> list[dict]:
+    res = _client.table("foods").select("*").order("name").execute()
+    return res.data
+
+
+# ── Meals ──────────────────────────────────────────────────────────────────────
+
+def insert_meal(meal: Meal) -> dict:
+    row = {"name": meal.name, "type": meal.type}
+    res = _client.table("meals").insert(row).execute()
+    return res.data[0]
+
+
+def get_meal_by_id(meal_id: str) -> dict | None:
+    res = _client.table("meals").select("*").eq("id", meal_id).execute()
+    return res.data[0] if res.data else None
+
+
+def get_all_meals() -> list[dict]:
+    res = _client.table("meals").select("*").order("name").execute()
+    return res.data
+
+
+# ── Meal Ingredients ───────────────────────────────────────────────────────────
+
+def insert_meal_ingredient(ingredient: MealIngredient) -> dict:
+    row = {
+        "meal_id": ingredient.meal_id,
+        "food_id": ingredient.food_id,
+        "weight_grams": ingredient.weight_grams,
+    }
+    res = _client.table("meal_ingredients").insert(row).execute()
+    return res.data[0]
+
+
+def get_ingredients_for_meal(meal_id: str) -> list[dict]:
+    res = (
+        _client.table("meal_ingredients")
+        .select("*, foods(*)")
+        .eq("meal_id", meal_id)
+        .execute()
+    )
+    return res.data
+
+
+# ── Logged Entries ─────────────────────────────────────────────────────────────
+
+def insert_logged_entry(entry: LoggedEntry) -> dict:
+    row = {
+        "date": entry.date,
+        "food_id": entry.food_id,
+        "meal_id": entry.meal_id,
+        "weight_grams": entry.weight_grams,
+        "calories": entry.calories,
+        "protein": entry.protein,
+        "carbs": entry.carbs,
+        "fats": entry.fats,
+    }
+    res = _client.table("logged_entries").insert(row).execute()
+    return res.data[0]
+
+
+def get_entries_for_date(date: str) -> list[dict]:
+    res = (
+        _client.table("logged_entries")
+        .select("*")
+        .eq("date", date)
+        .order("created_at")
+        .execute()
+    )
+    return res.data
+
+
+def delete_logged_entry(entry_id: str) -> None:
+    _client.table("logged_entries").delete().eq("id", entry_id).execute()
+
+
+# ── Weight Logs ────────────────────────────────────────────────────────────────
+
+def insert_weight_log(log: WeightLog) -> dict:
+    row = {"date": log.date, "weight": log.weight}
+    res = _client.table("weight_logs").insert(row).execute()
+    return res.data[0]
+
+
+def get_all_weight_logs() -> list[dict]:
+    res = _client.table("weight_logs").select("*").order("date").execute()
+    return res.data
+
+
+# ── Goals ──────────────────────────────────────────────────────────────────────
+
+def upsert_goals(goals: Goals) -> dict:
+    res = (
+        _client.table("goals")
+        .upsert(
+            {
+                "id": "00000000-0000-0000-0000-000000000001",
+                "calorie_target": goals.calorie_target,
+                "protein_target": goals.protein_target,
+                "carbs_target": goals.carbs_target,
+                "fats_target": goals.fats_target,
+            }
+        )
+        .execute()
+    )
+    return res.data[0]
+
+
+def get_goals() -> dict | None:
+    res = _client.table("goals").select("*").execute()
+    return res.data[0] if res.data else None
