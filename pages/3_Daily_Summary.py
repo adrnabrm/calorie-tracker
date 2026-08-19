@@ -48,7 +48,10 @@ else:
         food = entry.get("foods") or {}
         if isinstance(food, list):
             food = food[0] if food else {}
-        name = food.get("name") or "Unknown"
+        meal = entry.get("meals") or {}
+        if isinstance(meal, list):
+            meal = meal[0] if meal else {}
+        name = food.get("name") or meal.get("name") or "Unknown"
         if food.get("source") == "estimated" and food.get("name"):
             name = f"{name} (estimated)"
         with st.container(horizontal=True, vertical_alignment="center"):

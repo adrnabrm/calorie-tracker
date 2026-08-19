@@ -2,9 +2,19 @@ from datetime import date
 from typing import Literal
 
 import streamlit as st
-from models.schemas import Food, LoggedEntry
+from models.schemas import Food, LoggedEntry, Meal, MealIngredient
 from services.calculations import format_weight, scale_macros, to_grams
-from services.db import delete_food, get_all_foods, insert_food, insert_logged_entry
+from services.db import (
+    delete_food,
+    delete_meal,
+    get_all_foods,
+    get_all_meals,
+    get_ingredients_for_meal,
+    insert_food,
+    insert_logged_entry,
+    insert_meal,
+    insert_meal_ingredient,
+)
 from services.gemini import GeminiError
 from services.vision import estimate
 
@@ -43,9 +53,37 @@ def confirm_delete_food(food_id: str, name: str) -> None:
             st.rerun()
 
 
+@st.dialog("Are you sure?")
+def confirm_delete_recipe(meal_id: str, name: str) -> None:
+    st.write(f"Delete **{name}**? Past log entries will keep their macro data.")
+    with st.container(horizontal=True):
+        if st.button("Cancel"):
+            st.rerun()
+        if st.button("Delete", type="primary"):
+            delete_meal(meal_id)
+            load_recipes.clear()
+            st.rerun()
+
+
 @st.cache_data(ttl=60)
 def load_foods() -> list[dict]:
     return get_all_foods()
+
+
+@st.cache_data(ttl=60)
+def load_recipes() -> list[dict]:
+    return get_all_meals()
+
+
+def _add_recipe_ingredient() -> None:
+    new_id = st.session_state.recipe_next_id
+    st.session_state.recipe_ingredient_ids.append(new_id)
+    st.session_state.recipe_next_id += 1
+
+
+def _remove_recipe_ingredient(rid: int) -> None:
+    if rid in st.session_state.recipe_ingredient_ids:
+        st.session_state.recipe_ingredient_ids.remove(rid)
 
 
 def _editor_rows(edited) -> list[dict]:
@@ -56,9 +94,11 @@ def _editor_rows(edited) -> list[dict]:
 st.session_state.setdefault("vision_estimate", None)
 st.session_state.setdefault("vision_id", 0)
 st.session_state.setdefault("vision_error", None)
+st.session_state.setdefault("recipe_ingredient_ids", [0])
+st.session_state.setdefault("recipe_next_id", 1)
 
-library_tab, new_tab, photo_tab = st.tabs(
-    ["From library", "New food", "From photo"],
+library_tab, new_tab, photo_tab, recipes_tab = st.tabs(
+    ["From library", "New food", "From photo", "Recipes"],
     on_change="rerun",
     key="log_food_tab",
 )
@@ -255,3 +295,116 @@ with photo_tab:
                         st.session_state.vision_error = None
                         st.session_state.vision_id += 1
                         st.success("Logged.")
+
+with recipes_tab:
+    if recipes_tab.open:
+        recipes = load_recipes()
+        if not recipes:
+            st.info("No recipes yet. Create one below.")
+        else:
+            recipe_labels = {r["id"]: r["name"] for r in recipes}
+            recipe_id = st.selectbox(
+                "Recipe",
+                list(recipe_labels.keys()),
+                format_func=lambda i: recipe_labels[i],
+                key="selected_recipe_id",
+            )
+            ingredients = get_ingredients_for_meal(recipe_id)
+            total_grams = 0.0
+            total_macros = {"calories": 0.0, "protein": 0.0, "carbs": 0.0, "fats": 0.0}
+            if ingredients:
+                for ing in ingredients:
+                    food = ing["foods"]
+                    scaled = scale_macros(food, ing["weight_grams"])
+                    for k in total_macros:
+                        total_macros[k] += scaled[k]
+                    total_grams += ing["weight_grams"]
+                    st.caption(f"{food['name']} — {ing['weight_grams']:g} g")
+                st.write(
+                    f"**{total_grams:g} g** — {total_macros['calories']:.0f} cal, "
+                    f"{total_macros['protein']:.0f}p / {total_macros['carbs']:.0f}c / {total_macros['fats']:.0f}f"
+                )
+            with st.container(horizontal=True):
+                log_recipe_clicked = st.button("Log", key="log_recipe_btn")
+                del_recipe_clicked = st.button("Delete", key="del_recipe_btn")
+            if log_recipe_clicked:
+                if not ingredients:
+                    st.warning("This recipe has no ingredients.")
+                else:
+                    insert_logged_entry(
+                        LoggedEntry(
+                            date=date.today().isoformat(),
+                            meal_id=recipe_id,
+                            food_id=None,
+                            weight_grams=total_grams,
+                            calories=total_macros["calories"],
+                            protein=total_macros["protein"],
+                            carbs=total_macros["carbs"],
+                            fats=total_macros["fats"],
+                            weight_unit="g",
+                        )
+                    )
+                    st.success("Logged.")
+            if del_recipe_clicked:
+                confirm_delete_recipe(recipe_id, recipe_labels[recipe_id])
+
+        st.divider()
+        st.subheader("Create a recipe")
+        foods = load_foods()
+        if not foods:
+            st.info("No foods in library. Add some in New food first.")
+        else:
+            food_ids = [f["id"] for f in foods]
+            food_labels = {f["id"]: f["name"] for f in foods}
+            recipe_name = st.text_input("Recipe name", key="new_recipe_name")
+            for rid in list(st.session_state.recipe_ingredient_ids):
+                cols = st.columns([4, 2, 1])
+                with cols[0]:
+                    st.selectbox(
+                        "Food",
+                        food_ids,
+                        format_func=lambda fid: food_labels[fid],
+                        key=f"ri_food_{rid}",
+                        label_visibility="collapsed",
+                    )
+                with cols[1]:
+                    st.number_input(
+                        "g",
+                        min_value=0.1,
+                        value=100.0,
+                        step=1.0,
+                        key=f"ri_grams_{rid}",
+                        label_visibility="collapsed",
+                    )
+                with cols[2]:
+                    st.button(
+                        ":material/close:",
+                        key=f"ri_remove_{rid}",
+                        on_click=_remove_recipe_ingredient,
+                        args=(rid,),
+                    )
+            with st.container(horizontal=True):
+                st.button("Add ingredient", on_click=_add_recipe_ingredient)
+                save_recipe_clicked = st.button("Save recipe", type="primary")
+            if save_recipe_clicked:
+                if not recipe_name.strip():
+                    st.warning("Enter a recipe name.")
+                elif not st.session_state.recipe_ingredient_ids:
+                    st.warning("Add at least one ingredient.")
+                else:
+                    meal_row = insert_meal(Meal(name=recipe_name.strip(), type="composed"))
+                    for rid in st.session_state.recipe_ingredient_ids:
+                        insert_meal_ingredient(
+                            MealIngredient(
+                                meal_id=meal_row["id"],
+                                food_id=st.session_state[f"ri_food_{rid}"],
+                                weight_grams=st.session_state[f"ri_grams_{rid}"],
+                            )
+                        )
+                    load_recipes.clear()
+                    for rid in st.session_state.recipe_ingredient_ids:
+                        st.session_state.pop(f"ri_food_{rid}", None)
+                        st.session_state.pop(f"ri_grams_{rid}", None)
+                    st.session_state.recipe_ingredient_ids = [0]
+                    st.session_state.recipe_next_id = 1
+                    st.success(f"Recipe '{recipe_name.strip()}' saved.")
