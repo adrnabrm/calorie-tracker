@@ -14,7 +14,7 @@
 
 ```
 calorie-tracker/
-├── app.py                    # Streamlit entry point / home page
+├── app.py                    # Streamlit entry point; st.navigation, Daily Summary is default
 ├── requirements.txt
 ├── .env                      # API keys — gitignored
 ├── .env.example              # Template for env vars
@@ -22,7 +22,7 @@ calorie-tracker/
 ├── pages/
 │   ├── 1_Log_Food.py         # Vision + manual food logging
 │   ├── 2_Scan_Label.py       # OCR nutrition label workflow
-│   ├── 3_Daily_Summary.py    # Today's calories/macros vs goals
+│   ├── 3_Daily_Summary.py    # Today's calories/macros vs goals (home / default page)
 │   ├── 4_Weight_Tracker.py   # Weight logging + graph
 │   └── 5_Goals_Settings.py   # Calorie/macro target input
 │
