@@ -65,9 +65,9 @@ For mixed dishes you did not cook (pho, a restaurant plate). Homemade food you a
 4. **Log** always `insert_food` (`source=estimated`, `serving_grams=100`, macros per 100g from confirmed totals) then `logged_entries` for the confirmed grams. Library and Daily Summary tag these `(estimated)`
 
 ### Daily summary
-1. `pages/3_Daily_Summary.py` loads today's entries once (`get_entries_for_date` joins `foods(name, source)`) and `calculations.macros_from_entries` sums them vs goals
+1. `pages/3_Daily_Summary.py` date picker (default today, no future dates). `get_entries_for_date` joins `foods(name, source)`; `calculations.macros_from_entries` sums that day vs goals
 2. Progress bars show calories/protein/carbs/fats vs targets (remaining + %)
-3. Lists today's `logged_entries` (food name, amount in the unit it was logged, calories) via `get_entries_for_date`
+3. Lists that day's `logged_entries` (food name, amount in the unit it was logged, calories)
 4. Delete button on each row opens an Are you sure? dialog, then `delete_logged_entry` (removes the log, not the food library item)
 
 ### Manual workflow

@@ -1,5 +1,3 @@
-from datetime import date
-
 import streamlit as st
 from services.calculations import format_weight, macros_from_entries
 from services.db import delete_logged_entry, get_entries_for_date
@@ -9,8 +7,8 @@ st.title("Daily Summary")
 
 
 @st.dialog("Are you sure?")
-def confirm_delete_log(entry_id: str, name: str) -> None:
-    st.write(f"Delete **{name}** from today's log?")
+def confirm_delete_log(entry_id: str, name: str, day: str) -> None:
+    st.write(f"Delete **{name}** from the **{day}** log?")
     with st.container(horizontal=True):
         if st.button("Cancel", key="log_del_cancel"):
             st.rerun()
@@ -18,10 +16,10 @@ def confirm_delete_log(entry_id: str, name: str) -> None:
             delete_logged_entry(entry_id)
             st.rerun()
 
-today = date.today().isoformat()
-st.caption(today)
+selected = st.date_input("Date", value="today", max_value="today")
+day = selected.isoformat()
 
-entries = get_entries_for_date(today)
+entries = get_entries_for_date(day)
 stats = macros_from_entries(entries)
 
 if not stats["targets"]:
@@ -43,7 +41,7 @@ else:
 
 st.subheader("Logged")
 if not entries:
-    st.info("Nothing logged today.")
+    st.info("Nothing logged on this day.")
 else:
     to_delete = None
     for entry in entries:
@@ -61,4 +59,4 @@ else:
             if st.button("Delete", key=f"del_{entry['id']}"):
                 to_delete = (entry["id"], name)
     if to_delete:
-        confirm_delete_log(*to_delete)
+        confirm_delete_log(*to_delete, day)
