@@ -51,7 +51,7 @@ def delete_food(food_id: str) -> None:
 # ── Meals ──────────────────────────────────────────────────────────────────────
 
 def insert_meal(meal: Meal) -> dict:
-    row = {"name": meal.name, "type": meal.type}
+    row = {"name": meal.name, "type": meal.type, "servings": meal.servings}
     res = _client.table("meals").insert(row).execute()
     return res.data[0]
 
@@ -64,6 +64,12 @@ def get_meal_by_id(meal_id: str) -> dict | None:
 def get_all_meals() -> list[dict]:
     res = _client.table("meals").select("*").order("name").execute()
     return res.data
+
+
+def delete_meal(meal_id: str) -> None:
+    _client.table("logged_entries").update({"meal_id": None}).eq("meal_id", meal_id).execute()
+    _client.table("meal_ingredients").delete().eq("meal_id", meal_id).execute()
+    _client.table("meals").delete().eq("id", meal_id).execute()
 
 
 # ── Meal Ingredients ───────────────────────────────────────────────────────────
@@ -109,7 +115,7 @@ def insert_logged_entry(entry: LoggedEntry) -> dict:
 def get_entries_for_date(date: str) -> list[dict]:
     res = (
         _client.table("logged_entries")
-        .select("*, foods(name, source)")
+        .select("*, foods(name, source), meals(name)")
         .eq("date", date)
         .order("created_at")
         .execute()

@@ -105,3 +105,19 @@ For mixed dishes you did not cook (pho, a restaurant plate). Homemade food you a
 | 5 | OCR label scanning |
 | 6 | Vision mixed-dish estimate (photo + weight or size + notes → Gemini 3.6 Flash) |
 | 7 | Polish + Streamlit Community Cloud deploy |
+| 8 | Recipes — compose named meals from library foods, log as single entry |
+
+## Recipes
+
+### Data model
+- Uses the existing `meals` (`id, name, type=composed`) and `meal_ingredients` (`meal_id, food_id, weight_grams`) tables — no schema migrations required
+- Logging a recipe writes one `logged_entries` row with `meal_id` set and `food_id=null`; macros are the sum of scaled ingredient macros
+
+### Recipes tab (Log Food)
+1. **Log a recipe** — selectbox of saved recipes, shows per-ingredient breakdown + total macros, Log button writes a single `logged_entries` row
+2. **Create a recipe** — name input + dynamic ingredient rows (food from library + grams each), Save writes to `meals` then `meal_ingredients`
+3. **Delete** — Delete button on the selected recipe opens an "Are you sure?" dialog; `delete_meal` nulls `meal_id` on existing log entries, removes `meal_ingredients`, then removes the `meals` row
+
+### db.py additions (Phase 8)
+- `delete_meal(meal_id)` — null `meal_id` on `logged_entries`, delete `meal_ingredients`, delete `meals`
+- `get_entries_for_date` now selects `*, foods(name, source), meals(name)` so Daily Summary can display recipe names when `food_id` is null
