@@ -45,14 +45,15 @@ Adrian, here's the implementation roadmap I'd suggest, broken into phases you ca
 
 ---
 
-**Phase 6 — Vision food detection**
-- `services/nutrition_api.py` — USDA FoodData Central search + lookup
-- `services/estimator.py` — Gemini fallback when USDA misses, flags result as `estimated`
-- `services/vision.py` — Gemini vision call, structured output (list of detected food names)
-- Wire into `pages/1_Log_Food.py` as a "Photo" tab: capture → detect → USDA lookup (or fallback) → user confirms weights → log
+**Phase 6 — Vision mixed-dish estimate**
+- `models/schemas.py` — Pydantic estimate model: name, components (grams + macros), portion totals, reasoning, per-100g
+- `services/gemini.py` — pass model per call (`gemini-3.1-flash-lite` for OCR, `gemini-3.6-flash` thinking `medium` for estimates)
+- `services/vision.py` — photo + food-only weight + optional notes → structured estimate (grams must sum to the weighed amount)
+- Wire into `pages/1_Log_Food.py` Photo tab: capture → estimate → edit/reject confirm form → log as `estimated` (library save opt-in)
+- Not in this phase: USDA lookup, per-ingredient weighing, auto-save to library
 
 ---
 
 **Phase 7 — Polish + deploy**
-- Error states, loading spinners, edit/reject flow for detected foods
+- Error states, loading spinners
 - Deploy to Streamlit Community Cloud from GitHub

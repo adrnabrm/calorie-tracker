@@ -6,8 +6,8 @@
 |---|---|
 | App (frontend + logic) | Streamlit |
 | Database | Supabase (Postgres) |
-| Vision / LLM | Gemini 3.1 Flash-Lite (google-genai, Interactions API) |
-| Nutrition data | USDA FoodData Central |
+| Photo estimate | Gemini 3.6 Flash (thinking `medium`) |
+| OCR | Gemini 3.1 Flash-Lite |
 | Hosting | Streamlit Community Cloud |
 
 ## Directory Layout
@@ -28,15 +28,15 @@ calorie-tracker/
 │
 ├── services/                 # All business logic, no UI code
 │   ├── db.py                 # Supabase client + CRUD
-│   ├── gemini.py             # Shared Gemini client + generate() (Pydantic structured output)
-│   ├── vision.py             # Gemini: food detection from photo
-│   ├── ocr.py                # Gemini: nutrition label reading
-│   ├── nutrition_api.py      # USDA FoodData Central lookups
-│   ├── estimator.py          # Gemini fallback when USDA fails (flags as "estimated")
+│   ├── gemini.py             # Shared Gemini client + generate() (Pydantic structured output; model per call)
+│   ├── vision.py             # Gemini 3.6 Flash: mixed-dish estimate from photo + weight + notes
+│   ├── ocr.py                # Gemini 3.1 Flash-Lite: nutrition label reading
+│   ├── nutrition_api.py      # Stub — USDA is not part of v1 vision
+│   ├── estimator.py          # Stub — old USDA fallback; estimates live in vision.py
 │   └── calculations.py       # Macro/calorie math
 │
 ├── models/
-│   └── schemas.py            # Dataclasses mirroring Supabase tables + NutritionLabel (Pydantic)
+│   └── schemas.py            # Dataclasses + NutritionLabel + vision estimate Pydantic models
 │
 └── utils/
     └── config.py             # Loads env vars / API keys
@@ -54,10 +54,12 @@ calorie-tracker/
 ## Data Flow
 
 ### Vision workflow
-1. User photos food → `vision.py` sends to Gemini → list of food names
-2. Each name looked up via `nutrition_api.py` (USDA)
-3. On USDA miss → `estimator.py` (Gemini fallback, source = `estimated`)
-4. User confirms weights → `calculations.py` computes totals → `db.py` writes `logged_entries`
+For mixed dishes you did not cook (pho, a restaurant plate). Homemade food you already know goes through Manual, not this path. No per-ingredient USDA lookup.
+
+1. On `pages/1_Log_Food.py`, user takes or uploads a photo, enters **food-only** weight (bowl tared; g or oz), and an optional note (`extra noodles, hoisin on the side`)
+2. **Estimate** → `vision.py` calls Gemini 3.6 Flash (thinking `medium`) with the image, weight, and note. Structured output: dish name, component rows (name, grams, calories, protein, carbs, fats) whose grams sum to the weighed amount, totals for that portion, short reasoning, and per-100g macros
+3. Confirm form: user can edit name, component grams/macros, or drop rows. Totals follow the rows. User can reject and not log
+4. **Log** writes `logged_entries` for today with those totals, `source` on any food row = `estimated`. Saving to the `foods` library is opt-in (a one-off pho should not become a reusable library item). If saved, store per-100g so leftovers can use `scale_macros`
 
 ### Daily summary
 1. `pages/3_Daily_Summary.py` loads today's entries once (`get_entries_for_date` joins `foods(name)`) and `calculations.macros_from_entries` sums them vs goals
@@ -94,5 +96,5 @@ calorie-tracker/
 | 3 | Manual food logging |
 | 4 | Weight tracking |
 | 5 | OCR label scanning |
-| 6 | Vision food detection (Gemini + USDA) |
+| 6 | Vision mixed-dish estimate (photo + weight + notes → Gemini 3.6 Flash) |
 | 7 | Polish + Streamlit Community Cloud deploy |
