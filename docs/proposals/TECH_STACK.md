@@ -11,15 +11,12 @@
 * Tables: `foods`, `meals`, `meal_ingredients` (join table for composed meals), `logged_entries`, `weight_logs`, `goals`  
 * Accessed via `supabase-py` client from within the Streamlit app
 
-**LLM (vision \+ estimation fallback):** Gemini 3.1 Flash-Lite
+**LLM (two models, both google-genai Interactions API):**
 
-* Free tier covers personal-scale usage  
-* Used for: food detection from photos, nutrition estimation fallback, OCR reading of nutrition labels (Gemini handles vision \+ text extraction in one call)
+* **OCR:** Gemini 3.1 Flash-Lite — read a printed nutrition label into structured fields  
+* **Photo estimate:** Gemini 3.6 Flash, thinking `medium` — mixed-dish calories/macros from a photo + food weight + optional notes. This call only; do not use Flash-Lite here  
 
-**Nutrition API:** USDA FoodData Central
-
-* Free, no rate limit issues at personal scale  
-* Primary source for ingredient-level nutrition lookups
+Personal-scale usage is a few meals a day. 3.6 Flash is pennies/month, not a subscription.
 
 **Hosting:** Streamlit Community Cloud
 
@@ -35,8 +32,8 @@
 | ----- | ----- | ----- |
 | App (frontend+logic) | Streamlit | Free |
 | Database | Supabase | Free tier |
-| Vision/LLM | Gemini 3.1 Flash-Lite | Free tier |
-| Nutrition data | USDA FoodData Central | Free |
+| OCR | Gemini 3.1 Flash-Lite | Free tier |
+| Photo estimate | Gemini 3.6 Flash | Pennies/month at personal scale |
 | Hosting | Streamlit Community Cloud | Free |
 
-Total projected cost: **$0/month** at your usage scale, which beats every subscription comparison from your Success Criteria.
+Total projected cost stays under the Success Criteria subscription range (~$10–$20/month). No USDA in the vision path.

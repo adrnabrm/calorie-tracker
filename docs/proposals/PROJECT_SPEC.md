@@ -18,7 +18,7 @@ Calorie tracking takes significant time due to manual lookup and re-entry of pac
 
 **In scope (v1):**
 
-* Calorie/macro logging via vision (photo of food), manual entry, and nutrition label OCR  
+* Calorie/macro logging via photo estimate (mixed dishes), manual entry, and nutrition label OCR  
 * Reusable food and meal library  
 * Manual weight logging with graph over time  
 * Manual goal input (calorie/macro targets)
@@ -34,22 +34,19 @@ Calorie tracking takes significant time due to manual lookup and re-entry of pac
 
 ### **1\. Calorie/Macro Tracking**
 
-Three logging workflows, all feeding into a shared, reusable food/meal database:
+Three logging workflows, all feeding into a shared food/meal database. Vision is for mixed dishes you did not cook. Food you make yourself is Manual (you already know the recipe).
 
 **Vision Workflow**
 
-* User takes a picture of food  
-* LLM API detects what food items are present  
-* App checks if each detected food exists in the local DB  
-  * If not found, retrieves nutrition data from a nutrition API and stores it  
-* User inputs the weight of each individual food item in the meal  
-* App calculates calories/macros based on weight \+ nutrition data  
-* **Fallback:** if the nutrition API fails for a given ingredient, LLM estimates its nutrition data. Estimated entries are **flagged** (e.g. "estimated" vs "verified") and remain visually/data distinct from API-sourced entries
+* User photographs a mixed dish (e.g. a bowl of pho), then either a **food-only** weight **or** Small / Typical / Large, plus an optional note  
+* Gemini 3.6 Flash estimates calories/macros for that portion, with a component breakdown and short reasoning  
+* User edits or discards the estimate before anything is saved  
+* Logged as **estimated** (tagged in the library and daily summary). Stored per 100g so leftovers can be re-logged  
 
 **Manual Workflow**
 
 * User logs a food or meal once with name \+ nutrition data (calories, protein, carbs, fats)  
-* Saved entries are searchable/reusable for future logging (e.g. log "morning smoothie" once, reuse on later days)
+* Saved entries are searchable/reusable for future logging (e.g. log a homemade smoothie once, reuse on later days)
 
 **Nutrition Label OCR**
 
@@ -65,7 +62,7 @@ Three logging workflows, all feeding into a shared, reusable food/meal database:
 
 ## **Data Model (entities, tech-agnostic)**
 
-* **Food** — an individual item with nutrition data (calories, protein, carbs, fats). Source-tagged as `manual`, `vision`, `ocr`, or `estimated` (flag for fallback cases)  
+* **Food** — an individual item with nutrition data (calories, protein, carbs, fats). Source-tagged as `manual`, `vision`, `ocr`, or `estimated` (photo estimates use `estimated`)  
 * **Meal** — two types:  
   * *Composed Meal*: built from existing Food entities (e.g. "chicken \+ rice \+ broccoli")  
   * *Simple Meal*: a single logged item with its own nutrition totals, no ingredient breakdown (e.g. "restaurant burger — 800 cal / 40g protein" with no sub-items)  
@@ -75,10 +72,11 @@ Three logging workflows, all feeding into a shared, reusable food/meal database:
 
 ## **Constraints**
 
-* Minimize ongoing API costs (vision LLM calls, nutrition API calls, OCR) to stay under the reference subscription cost range noted in Success Criteria
+* Minimize ongoing API costs (estimate + OCR Gemini calls) to stay under the reference subscription cost range noted in Success Criteria
 
 ## **Assumptions & Risks**
 
-1. Nutrition API — recommend USDA FoodData Central (free) as primary, decided at spec level  
-2. Vision correction — user can edit or reject detected items before proceeding  
-3. Connectivity — always-connected assumption is fine for v1
+1. Photo estimates are guesses. A scale is better; Small/Typical/Large is the out-and-about fallback. 20–40% error is expected; they stay flagged `estimated`  
+2. If a weight is entered it must be food-only (tare the bowl)  
+3. User can edit or discard the estimate before logging  
+4. Connectivity — always-connected assumption is fine for v1

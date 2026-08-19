@@ -16,10 +16,10 @@ calorie-tracker/
 ├── services/                   \# Core logic, no UI code here  
 │   ├── \_\_init\_\_.py  
 │   ├── db.py                    \# Supabase client \+ CRUD functions (foods, meals, logs, weight)  
-│   ├── vision.py                 \# Gemini calls: food detection from photo  
-│   ├── ocr.py                    \# Gemini calls: nutrition label reading  
-│   ├── nutrition\_api.py          \# USDA FoodData Central lookups  
-│   ├── estimator.py              \# LLM fallback estimation when nutrition API fails  
+│   ├── vision.py                 \# Gemini 3.6 Flash: mixed-dish estimate from photo + weight + notes  
+│   ├── ocr.py                    \# Gemini 3.1 Flash-Lite: nutrition label reading  
+│   ├── nutrition\_api.py          \# Stub — USDA is not part of v1 vision  
+│   ├── estimator.py              \# Stub — old USDA fallback; estimates live in vision.py  
 │   └── calculations.py           \# Calorie/macro math, weight-based aggregation  
 │  
 ├── models/                     \# Data structures (optional but clean)  
@@ -34,8 +34,8 @@ calorie-tracker/
 
 * **`pages/` folder** — Streamlit's built-in multi-page app convention (numbered files become sidebar nav automatically), matches your 5 core features naturally as separate pages  
 * **`services/` separated from `pages/`** — keeps API calls and business logic out of UI code, so Streamlit files stay focused on layout/display, not logic (easier to test/debug independently, and honors your "surgical, minimal changes" preference later — you'll know exactly which file to touch for a given bug)  
-* **`ocr.py` separate from `vision.py`** — even though both call Gemini, they're distinct workflows (label OCR vs. food photo detection) with different prompts/parsing, so keeping them separate avoids one bloated file  
-* **`estimator.py` separate from `nutrition_api.py`** — this is your fallback path (LLM estimates when USDA lookup fails), worth isolating since it's conceptually different from a real API call and needs the "estimated" flag logic
+* **`ocr.py` separate from `vision.py`** — different models and jobs (read a label vs estimate a mixed dish), so keep them in separate files  
+* **`nutrition_api.py` / `estimator.py`** — leftover stubs from an older USDA-per-ingredient plan. v1 vision does not look up USDA or weigh each ingredient
 
 ### **Table structure (for `db.py` / Supabase)**
 
