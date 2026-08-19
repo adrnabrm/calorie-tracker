@@ -50,7 +50,7 @@ calorie-tracker/
 - `foods` — `id, name, calories, protein, carbs, fats, serving_grams, serving_unit: g|oz, source: manual|vision|ocr|estimated`
 - `meals` — `id, name, type: composed|simple`
 - `meal_ingredients` — `meal_id, food_id, weight_grams` (join table for composed meals)
-- `logged_entries` — `id, date, food_id?, meal_id?, weight_grams, weight_unit: g|oz, calories, protein, carbs, fats`
+- `logged_entries` — `id, date, food_id?, meal_id?, weight_grams, weight_unit: g|oz|serving, calories, protein, carbs, fats`
 - `weight_logs` — `id, date` (unique), `weight` (lbs)
 - `goals` — `id, date` (unique), `calorie_target, protein_target, carbs_target, fats_target`. A row is the targets starting that date until the next later `date`
 
@@ -63,6 +63,7 @@ For mixed dishes you did not cook (pho, a restaurant plate). Homemade food you a
 2. **Estimate** (button only) → `vision.py` calls Gemini 3.6 Flash (thinking `medium`) with `FoodEstimate` JSON schema. API/JSON/validation failures raise `GeminiError` ("Gemini request failed. Try again.") and do not open confirm. `is_food=false` is a successful read of a non-food image ("No food in this photo.")
 3. If the user weighed the food, component grams/macros are rescaled so grams sum to that weight. Confirm: edit name and component rows (`st.data_editor`); displayed totals are the sum of rows. Discard clears the estimate. Blank name does not write
 4. **Log** always `insert_food` (`source=estimated`, `serving_grams=100`, macros per 100g from confirmed totals) then `logged_entries` for the confirmed grams. Library and Daily Summary tag these `(estimated)`
+5. **Serving-size logging** — "From library" tab defaults the unit to `serving`. Amount × `food.serving_grams` converts to grams internally; `weight_unit="serving"` is stored and Daily Summary back-calculates the display (e.g. "0.5 servings") using `foods.serving_grams` from the join
 
 ### Daily summary
 1. `pages/3_Daily_Summary.py` date picker (default today, no future dates). `get_entries_for_date` joins `foods(name, source)`; `calculations.macros_from_entries` sums that day vs `get_goals_for_date` (latest `goals` row with `date` ≤ selected day)

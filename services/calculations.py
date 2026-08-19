@@ -15,8 +15,12 @@ def to_grams(amount: float, unit: str) -> float:
     return amount * OZ_TO_G if unit == "oz" else amount
 
 
-def format_weight(grams: float, unit: str) -> str:
+def format_weight(grams: float, unit: str, serving_grams: float | None = None) -> str:
     """Format stored grams using the unit they were logged in."""
+    if unit == "serving" and serving_grams:
+        servings = grams / serving_grams
+        label = "serving" if servings == 1 else "servings"
+        return f"{servings:g} {label}"
     if unit == "oz":
         return f"{grams / OZ_TO_G:g} oz"
     return f"{grams:g} g"

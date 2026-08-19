@@ -129,17 +129,21 @@ with library_tab:
             )
             serving_unit = food.get("serving_unit") or "g"
             lib_eaten = st.number_input(
-                "Amount eaten", min_value=0.1, value=1.0, step=1.0, key="lib_eaten"
+                "Amount eaten", min_value=0.1, value=1.0, step=0.5, key="lib_eaten"
             )
             lib_unit = st.segmented_control(
-                "Unit", ["g", "oz"], default=serving_unit, key=f"lib_unit_{food_id}"
+                "Unit", ["serving", "g", "oz"], default="serving", key=f"lib_unit_{food_id}"
             )
             with st.container(horizontal=True):
                 log_clicked = st.button("Log")
                 del_clicked = st.button("Delete from library")
             if log_clicked:
-                unit = lib_unit or serving_unit
-                log_today(food, to_grams(lib_eaten, unit), unit)
+                unit = lib_unit or "serving"
+                if unit == "serving":
+                    eaten_grams = lib_eaten * float(food["serving_grams"])
+                else:
+                    eaten_grams = to_grams(lib_eaten, unit)
+                log_today(food, eaten_grams, unit)
                 st.success("Logged.")
             if del_clicked:
                 confirm_delete_food(food_id, food["name"])

@@ -55,8 +55,9 @@ else:
         if food.get("source") == "estimated" and food.get("name"):
             name = f"{name} (estimated)"
         with st.container(horizontal=True, vertical_alignment="center"):
+            food_serving_grams = float(food["serving_grams"]) if food.get("serving_grams") else None
             st.write(
-                f"**{name}** — {format_weight(float(entry['weight_grams']), entry.get('weight_unit') or 'g')}, "
+                f"**{name}** — {format_weight(float(entry['weight_grams']), entry.get('weight_unit') or 'g', food_serving_grams)}, "
                 f"{float(entry['calories']):.0f} cal"
             )
             if st.button("Delete", key=f"del_{entry['id']}"):
