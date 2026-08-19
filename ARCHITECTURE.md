@@ -18,6 +18,9 @@ calorie-tracker/
 ├── requirements.txt
 ├── .env                      # API keys — gitignored
 ├── .env.example              # Template for env vars
+├── .streamlit/
+│   ├── config.toml           # Dark navy theme; coral #FF8C42 for buttons, alerts, selections
+│   └── secrets.toml          # gitignored
 │
 ├── pages/
 │   ├── 1_Log_Food.py         # Vision + manual food logging
