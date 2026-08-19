@@ -122,6 +122,7 @@ class WeightLog:
 
 @dataclass
 class Goals:
+    date: str
     calorie_target: float
     protein_target: float
     carbs_target: float

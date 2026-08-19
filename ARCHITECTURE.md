@@ -52,7 +52,7 @@ calorie-tracker/
 - `meal_ingredients` — `meal_id, food_id, weight_grams` (join table for composed meals)
 - `logged_entries` — `id, date, food_id?, meal_id?, weight_grams, weight_unit: g|oz, calories, protein, carbs, fats`
 - `weight_logs` — `id, date` (unique), `weight` (lbs)
-- `goals` — `calorie_target, protein_target, carbs_target, fats_target`
+- `goals` — `id, date` (unique), `calorie_target, protein_target, carbs_target, fats_target`. A row is the targets starting that date until the next later `date`
 
 ## Data Flow
 
@@ -65,10 +65,14 @@ For mixed dishes you did not cook (pho, a restaurant plate). Homemade food you a
 4. **Log** always `insert_food` (`source=estimated`, `serving_grams=100`, macros per 100g from confirmed totals) then `logged_entries` for the confirmed grams. Library and Daily Summary tag these `(estimated)`
 
 ### Daily summary
-1. `pages/3_Daily_Summary.py` date picker (default today, no future dates). `get_entries_for_date` joins `foods(name, source)`; `calculations.macros_from_entries` sums that day vs goals
+1. `pages/3_Daily_Summary.py` date picker (default today, no future dates). `get_entries_for_date` joins `foods(name, source)`; `calculations.macros_from_entries` sums that day vs `get_goals_for_date` (latest `goals` row with `date` ≤ selected day)
 2. Progress bars show calories/protein/carbs/fats vs targets (remaining + %)
 3. Lists that day's `logged_entries` (food name, amount in the unit it was logged, calories)
 4. Delete button on each row opens an Are you sure? dialog, then `delete_logged_entry` (removes the log, not the food library item)
+
+### Goals
+1. `pages/5_Goals_Settings.py` date picker + form. `upsert_goals` writes one row per date (second save that day overwrites)
+2. A day's Daily Summary uses the latest `goals` row with `date` ≤ that day
 
 ### Manual workflow
 1. User enters name, label serving size (g or oz), and nutrition per serving → `foods` (source = `manual`). Serving is stored as grams (`1 oz = 28.3495 g`) plus `serving_unit` for display

@@ -159,22 +159,39 @@ def delete_weight_log(log_id: str) -> None:
 # ── Goals ──────────────────────────────────────────────────────────────────────
 
 def upsert_goals(goals: Goals) -> dict:
-    res = (
+    row = {
+        "date": goals.date,
+        "calorie_target": goals.calorie_target,
+        "protein_target": goals.protein_target,
+        "carbs_target": goals.carbs_target,
+        "fats_target": goals.fats_target,
+    }
+    existing = (
         _client.table("goals")
-        .upsert(
-            {
-                "id": "00000000-0000-0000-0000-000000000001",
-                "calorie_target": goals.calorie_target,
-                "protein_target": goals.protein_target,
-                "carbs_target": goals.carbs_target,
-                "fats_target": goals.fats_target,
-            }
-        )
+        .select("id")
+        .eq("date", goals.date)
+        .limit(1)
         .execute()
     )
+    if existing.data:
+        res = (
+            _client.table("goals")
+            .update(row)
+            .eq("id", existing.data[0]["id"])
+            .execute()
+        )
+        return res.data[0]
+    res = _client.table("goals").insert(row).execute()
     return res.data[0]
 
 
-def get_goals() -> dict | None:
-    res = _client.table("goals").select("*").execute()
+def get_goals_for_date(date: str) -> dict | None:
+    res = (
+        _client.table("goals")
+        .select("*")
+        .lte("date", date)
+        .order("date", desc=True)
+        .limit(1)
+        .execute()
+    )
     return res.data[0] if res.data else None
