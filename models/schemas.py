@@ -89,6 +89,7 @@ class FoodEstimate(BaseModel):
 class Meal:
     name: str
     type: Literal["composed", "simple"]
+    servings: int = 1
     id: Optional[str] = None
 
 

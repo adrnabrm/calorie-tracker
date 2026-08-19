@@ -51,7 +51,7 @@ def delete_food(food_id: str) -> None:
 # ── Meals ──────────────────────────────────────────────────────────────────────
 
 def insert_meal(meal: Meal) -> dict:
-    row = {"name": meal.name, "type": meal.type}
+    row = {"name": meal.name, "type": meal.type, "servings": meal.servings}
     res = _client.table("meals").insert(row).execute()
     return res.data[0]
 

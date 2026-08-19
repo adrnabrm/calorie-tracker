@@ -309,23 +309,29 @@ with recipes_tab:
                 format_func=lambda i: recipe_labels[i],
                 key="selected_recipe_id",
             )
+            recipe = next(r for r in recipes if r["id"] == recipe_id)
+            servings = int(recipe.get("servings") or 1)
             ingredients = get_ingredients_for_meal(recipe_id)
-            total_grams = 0.0
-            total_macros = {"calories": 0.0, "protein": 0.0, "carbs": 0.0, "fats": 0.0}
+            batch_grams = 0.0
+            batch_macros = {"calories": 0.0, "protein": 0.0, "carbs": 0.0, "fats": 0.0}
             if ingredients:
                 for ing in ingredients:
                     food = ing["foods"]
                     scaled = scale_macros(food, ing["weight_grams"])
-                    for k in total_macros:
-                        total_macros[k] += scaled[k]
-                    total_grams += ing["weight_grams"]
-                    st.caption(f"{food['name']} — {ing['weight_grams']:g} g")
+                    for k in batch_macros:
+                        batch_macros[k] += scaled[k]
+                    batch_grams += ing["weight_grams"]
+                    st.caption(f"{food['name']} — {ing['weight_grams']:g} g (batch)")
+                serving_grams = batch_grams / servings
+                serving_macros = {k: v / servings for k, v in batch_macros.items()}
+                label = f"1 of {servings} servings" if servings > 1 else "1 serving"
                 st.write(
-                    f"**{total_grams:g} g** — {total_macros['calories']:.0f} cal, "
-                    f"{total_macros['protein']:.0f}p / {total_macros['carbs']:.0f}c / {total_macros['fats']:.0f}f"
+                    f"**{serving_grams:g} g** ({label}) — "
+                    f"{serving_macros['calories']:.0f} cal, "
+                    f"{serving_macros['protein']:.0f}p / {serving_macros['carbs']:.0f}c / {serving_macros['fats']:.0f}f"
                 )
             with st.container(horizontal=True):
-                log_recipe_clicked = st.button("Log", key="log_recipe_btn")
+                log_recipe_clicked = st.button("Log 1 serving", key="log_recipe_btn")
                 del_recipe_clicked = st.button("Delete", key="del_recipe_btn")
             if log_recipe_clicked:
                 if not ingredients:
@@ -336,11 +342,11 @@ with recipes_tab:
                             date=date.today().isoformat(),
                             meal_id=recipe_id,
                             food_id=None,
-                            weight_grams=total_grams,
-                            calories=total_macros["calories"],
-                            protein=total_macros["protein"],
-                            carbs=total_macros["carbs"],
-                            fats=total_macros["fats"],
+                            weight_grams=serving_grams,
+                            calories=serving_macros["calories"],
+                            protein=serving_macros["protein"],
+                            carbs=serving_macros["carbs"],
+                            fats=serving_macros["fats"],
                             weight_unit="g",
                         )
                     )
@@ -357,8 +363,16 @@ with recipes_tab:
             food_ids = [f["id"] for f in foods]
             food_labels = {f["id"]: f["name"] for f in foods}
             recipe_name = st.text_input("Recipe name", key="new_recipe_name")
+            recipe_servings = st.number_input(
+                "Servings (divide batch into this many portions)",
+                min_value=1,
+                value=1,
+                step=1,
+                key="new_recipe_servings",
+            )
+            food_map = {f["id"]: f for f in foods}
             for rid in list(st.session_state.recipe_ingredient_ids):
-                cols = st.columns([4, 2, 1])
+                cols = st.columns([4, 2, 2, 1])
                 with cols[0]:
                     st.selectbox(
                         "Food",
@@ -369,19 +383,34 @@ with recipes_tab:
                     )
                 with cols[1]:
                     st.number_input(
-                        "g",
+                        "Amount",
                         min_value=0.1,
                         value=100.0,
                         step=1.0,
-                        key=f"ri_grams_{rid}",
+                        key=f"ri_amount_{rid}",
                         label_visibility="collapsed",
                     )
                 with cols[2]:
+                    st.segmented_control(
+                        "Unit",
+                        ["g", "oz"],
+                        default="g",
+                        key=f"ri_unit_{rid}",
+                        label_visibility="collapsed",
+                    )
+                with cols[3]:
                     st.button(
                         ":material/close:",
                         key=f"ri_remove_{rid}",
                         on_click=_remove_recipe_ingredient,
                         args=(rid,),
+                    )
+                selected_fid = st.session_state.get(f"ri_food_{rid}")
+                if selected_fid and selected_fid in food_map:
+                    f = food_map[selected_fid]
+                    st.caption(
+                        f"{format_weight(float(f['serving_grams']), f.get('serving_unit') or 'g')} serving — "
+                        f"{f['calories']:.0f} cal, {f['protein']:.0f}p / {f['carbs']:.0f}c / {f['fats']:.0f}f"
                     )
             with st.container(horizontal=True):
                 st.button("Add ingredient", on_click=_add_recipe_ingredient)
@@ -392,19 +421,27 @@ with recipes_tab:
                 elif not st.session_state.recipe_ingredient_ids:
                     st.warning("Add at least one ingredient.")
                 else:
-                    meal_row = insert_meal(Meal(name=recipe_name.strip(), type="composed"))
+                    meal_row = insert_meal(
+                        Meal(
+                            name=recipe_name.strip(),
+                            type="composed",
+                            servings=int(recipe_servings),
+                        )
+                    )
                     for rid in st.session_state.recipe_ingredient_ids:
+                        unit = st.session_state.get(f"ri_unit_{rid}") or "g"
                         insert_meal_ingredient(
                             MealIngredient(
                                 meal_id=meal_row["id"],
                                 food_id=st.session_state[f"ri_food_{rid}"],
-                                weight_grams=st.session_state[f"ri_grams_{rid}"],
+                                weight_grams=to_grams(st.session_state[f"ri_amount_{rid}"], unit),
                             )
                         )
                     load_recipes.clear()
                     for rid in st.session_state.recipe_ingredient_ids:
                         st.session_state.pop(f"ri_food_{rid}", None)
-                        st.session_state.pop(f"ri_grams_{rid}", None)
+                        st.session_state.pop(f"ri_amount_{rid}", None)
+                        st.session_state.pop(f"ri_unit_{rid}", None)
                     st.session_state.recipe_ingredient_ids = [0]
                     st.session_state.recipe_next_id = 1
                     st.success(f"Recipe '{recipe_name.strip()}' saved.")
