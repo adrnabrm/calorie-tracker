@@ -123,6 +123,10 @@ with library_tab:
             }
             food_id = st.selectbox("Food", list(labels.keys()), format_func=lambda i: labels[i])
             food = next(f for f in foods if f["id"] == food_id)
+            st.caption(
+                f"{format_weight(float(food['serving_grams']), food.get('serving_unit') or 'g')} serving — "
+                f"{food['calories']:.0f} cal, {food['protein']:.0f}p / {food['carbs']:.0f}c / {food['fats']:.0f}f"
+            )
             serving_unit = food.get("serving_unit") or "g"
             lib_eaten = st.number_input(
                 "Amount eaten", min_value=0.1, value=1.0, step=1.0, key="lib_eaten"
