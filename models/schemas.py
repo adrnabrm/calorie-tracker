@@ -72,7 +72,16 @@ class FoodEstimate(BaseModel):
         if self.total_grams <= 0:
             raise ValueError("total_grams must be > 0 when is_food is true")
         if not self.components:
-            raise ValueError("at least one component when is_food is true")
+            self.components = [
+                EstimateComponent(
+                    name=self.name.strip(),
+                    grams=self.total_grams,
+                    calories=self.totals.calories,
+                    protein=self.totals.protein,
+                    carbs=self.totals.carbs,
+                    fats=self.totals.fats,
+                )
+            ]
         return self
 
 

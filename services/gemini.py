@@ -1,4 +1,5 @@
 import base64
+import traceback
 from typing import TypeVar
 
 from google import genai
@@ -52,4 +53,5 @@ def generate(
             raise ValueError("empty output")
         return schema.model_validate_json(text)
     except Exception as e:
-        raise GeminiError("Gemini request failed. Try again.") from e
+        traceback.print_exception(e)
+        raise GeminiError(f"Gemini request failed. {e}") from e

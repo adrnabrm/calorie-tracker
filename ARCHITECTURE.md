@@ -56,7 +56,7 @@ calorie-tracker/
 ### Vision workflow
 For mixed dishes you did not cook (pho, a restaurant plate). Homemade food you already know goes through Manual, not this path. No per-ingredient USDA lookup.
 
-1. On `pages/1_Log_Food.py` **From photo**: take or upload a photo, then either a **food-only** weight (bowl tared; g or oz) **or** Small / Typical / Large, plus an optional note (`extra noodles, ate half`)
+1. On `pages/1_Log_Food.py` tabs (From library, New food, From photo): take or upload a photo, then either a **food-only** weight (bowl tared; g or oz) **or** Small / Typical / Large, plus an optional note (`extra noodles, ate half`)
 2. **Estimate** (button only) → `vision.py` calls Gemini 3.6 Flash (thinking `medium`) with `FoodEstimate` JSON schema. API/JSON/validation failures raise `GeminiError` ("Gemini request failed. Try again.") and do not open confirm. `is_food=false` is a successful read of a non-food image ("No food in this photo.")
 3. If the user weighed the food, component grams/macros are rescaled so grams sum to that weight. Confirm: edit name and component rows (`st.data_editor`); displayed totals are the sum of rows. Discard clears the estimate. Blank name does not write
 4. **Log** always `insert_food` (`source=estimated`, `serving_grams=100`, macros per 100g from confirmed totals) then `logged_entries` for the confirmed grams. Library and Daily Summary tag these `(estimated)`

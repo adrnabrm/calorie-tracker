@@ -48,6 +48,7 @@ def estimate(
         "This is a mixed dish. Split it into visible parts (broth, noodles, meat, etc.).",
         "Grams are food-only, not the bowl or plate.",
         "Component grams must add up to the portion grams.",
+        "Always include at least one component. If you cannot split the dish, use one row for the whole portion.",
         "Set is_food to false if this image is not food.",
     ]
     if grams is not None:
