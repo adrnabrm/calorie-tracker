@@ -51,6 +51,8 @@ else:
         if isinstance(food, list):
             food = food[0] if food else {}
         name = food.get("name") or "Unknown"
+        if food.get("source") == "estimated" and food.get("name"):
+            name = f"{name} (estimated)"
         with st.container(horizontal=True, vertical_alignment="center"):
             st.write(
                 f"**{name}** — {format_weight(float(entry['weight_grams']), entry.get('weight_unit') or 'g')}, "

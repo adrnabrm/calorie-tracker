@@ -21,6 +21,9 @@ def generate(
     schema: type[T],
     image_bytes: bytes | None = None,
     mime_type: str = "image/jpeg",
+    *,
+    model: str = MODEL,
+    thinking_level: str | None = None,
 ) -> T:
     payload: list[dict] = [{"type": "text", "text": prompt}]
     if image_bytes is not None:
@@ -31,16 +34,22 @@ def generate(
                 "mime_type": mime_type,
             }
         )
+    kwargs: dict = {
+        "model": model,
+        "input": payload,
+        "response_format": {
+            "type": "text",
+            "mime_type": "application/json",
+            "schema": schema.model_json_schema(),
+        },
+    }
+    if thinking_level is not None:
+        kwargs["generation_config"] = {"thinking_level": thinking_level}
     try:
-        interaction = client.interactions.create(
-            model=MODEL,
-            input=payload,
-            response_format={
-                "type": "text",
-                "mime_type": "application/json",
-                "schema": schema.model_json_schema(),
-            },
-        )
-        return schema.model_validate_json(interaction.output_text)
+        interaction = client.interactions.create(**kwargs)
+        text = interaction.output_text
+        if not text:
+            raise ValueError("empty output")
+        return schema.model_validate_json(text)
     except Exception as e:
         raise GeminiError("Gemini request failed. Try again.") from e

@@ -45,12 +45,12 @@ Adrian, here's the implementation roadmap I'd suggest, broken into phases you ca
 
 ---
 
-**Phase 6 — Vision mixed-dish estimate**
-- `models/schemas.py` — Pydantic estimate model: name, components (grams + macros), portion totals, reasoning, per-100g
-- `services/gemini.py` — pass model per call (`gemini-3.1-flash-lite` for OCR, `gemini-3.6-flash` thinking `medium` for estimates)
-- `services/vision.py` — photo + food-only weight + optional notes → structured estimate (grams must sum to the weighed amount)
-- Wire into `pages/1_Log_Food.py` Photo tab: capture → estimate → edit/reject confirm form → log as `estimated` (library save opt-in)
-- Not in this phase: USDA lookup, per-ingredient weighing, auto-save to library
+**DONE Phase 6 — Vision mixed-dish estimate**
+- `models/schemas.py` — `FoodEstimate` / `EstimateComponent` (`is_food`, grams/macros bounds, validator)
+- `services/gemini.py` — `model` + `thinking_level` per call; OCR default `gemini-3.1-flash-lite`; parse/API fail → `GeminiError`
+- `services/vision.py` — photo + grams or Small/Typical/Large + notes → 3.6 Flash (`medium`); rescale to weighed grams
+- `pages/1_Log_Food.py` From photo: Estimate spinner → edit/discard → log as `estimated` (per 100g food + today's entry). Library and Daily Summary tag `(estimated)`
+- Not in this phase: USDA lookup, per-ingredient weighing
 
 ---
 

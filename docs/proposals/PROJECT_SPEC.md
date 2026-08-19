@@ -38,10 +38,10 @@ Three logging workflows, all feeding into a shared food/meal database. Vision is
 
 **Vision Workflow**
 
-* User photographs a mixed dish (e.g. a bowl of pho), enters the **food-only** weight, and an optional note about what’s in it  
-* Gemini 3.6 Flash estimates calories/macros for **that weighed portion**, with a component breakdown (grams must add up to the weight) and short reasoning  
-* User edits or rejects the estimate before anything is saved  
-* Logged as **estimated** (visually/data distinct from manual/OCR). Saving to the reusable library is opt-in — a restaurant bowl is a one-off by default  
+* User photographs a mixed dish (e.g. a bowl of pho), then either a **food-only** weight **or** Small / Typical / Large, plus an optional note  
+* Gemini 3.6 Flash estimates calories/macros for that portion, with a component breakdown and short reasoning  
+* User edits or discards the estimate before anything is saved  
+* Logged as **estimated** (tagged in the library and daily summary). Stored per 100g so leftovers can be re-logged  
 
 **Manual Workflow**
 
@@ -76,7 +76,7 @@ Three logging workflows, all feeding into a shared food/meal database. Vision is
 
 ## **Assumptions & Risks**
 
-1. Photo estimates are guesses anchored to a scale. 20–40% error is expected; they stay flagged `estimated`  
-2. Weight must be food-only (tare the bowl). Skip the weight and the estimate is not usable  
-3. User can edit or reject the estimate before logging  
+1. Photo estimates are guesses. A scale is better; Small/Typical/Large is the out-and-about fallback. 20–40% error is expected; they stay flagged `estimated`  
+2. If a weight is entered it must be food-only (tare the bowl)  
+3. User can edit or discard the estimate before logging  
 4. Connectivity — always-connected assumption is fine for v1

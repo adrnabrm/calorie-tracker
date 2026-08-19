@@ -109,7 +109,7 @@ def insert_logged_entry(entry: LoggedEntry) -> dict:
 def get_entries_for_date(date: str) -> list[dict]:
     res = (
         _client.table("logged_entries")
-        .select("*, foods(name)")
+        .select("*, foods(name, source)")
         .eq("date", date)
         .order("created_at")
         .execute()

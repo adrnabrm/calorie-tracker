@@ -29,7 +29,7 @@ calorie-tracker/
 ├── services/                 # All business logic, no UI code
 │   ├── db.py                 # Supabase client + CRUD
 │   ├── gemini.py             # Shared Gemini client + generate() (Pydantic structured output; model per call)
-│   ├── vision.py             # Gemini 3.6 Flash: mixed-dish estimate from photo + weight + notes
+│   ├── vision.py             # Gemini 3.6 Flash: mixed-dish estimate from photo + weight or size + notes
 │   ├── ocr.py                # Gemini 3.1 Flash-Lite: nutrition label reading
 │   ├── nutrition_api.py      # Stub — USDA is not part of v1 vision
 │   ├── estimator.py          # Stub — old USDA fallback; estimates live in vision.py
@@ -56,13 +56,13 @@ calorie-tracker/
 ### Vision workflow
 For mixed dishes you did not cook (pho, a restaurant plate). Homemade food you already know goes through Manual, not this path. No per-ingredient USDA lookup.
 
-1. On `pages/1_Log_Food.py`, user takes or uploads a photo, enters **food-only** weight (bowl tared; g or oz), and an optional note (`extra noodles, hoisin on the side`)
-2. **Estimate** → `vision.py` calls Gemini 3.6 Flash (thinking `medium`) with the image, weight, and note. Structured output: dish name, component rows (name, grams, calories, protein, carbs, fats) whose grams sum to the weighed amount, totals for that portion, short reasoning, and per-100g macros
-3. Confirm form: user can edit name, component grams/macros, or drop rows. Totals follow the rows. User can reject and not log
-4. **Log** writes `logged_entries` for today with those totals, `source` on any food row = `estimated`. Saving to the `foods` library is opt-in (a one-off pho should not become a reusable library item). If saved, store per-100g so leftovers can use `scale_macros`
+1. On `pages/1_Log_Food.py` **From photo**: take or upload a photo, then either a **food-only** weight (bowl tared; g or oz) **or** Small / Typical / Large, plus an optional note (`extra noodles, ate half`)
+2. **Estimate** (button only) → `vision.py` calls Gemini 3.6 Flash (thinking `medium`) with `FoodEstimate` JSON schema. API/JSON/validation failures raise `GeminiError` ("Gemini request failed. Try again.") and do not open confirm. `is_food=false` is a successful read of a non-food image ("No food in this photo.")
+3. If the user weighed the food, component grams/macros are rescaled so grams sum to that weight. Confirm: edit name and component rows (`st.data_editor`); displayed totals are the sum of rows. Discard clears the estimate. Blank name does not write
+4. **Log** always `insert_food` (`source=estimated`, `serving_grams=100`, macros per 100g from confirmed totals) then `logged_entries` for the confirmed grams. Library and Daily Summary tag these `(estimated)`
 
 ### Daily summary
-1. `pages/3_Daily_Summary.py` loads today's entries once (`get_entries_for_date` joins `foods(name)`) and `calculations.macros_from_entries` sums them vs goals
+1. `pages/3_Daily_Summary.py` loads today's entries once (`get_entries_for_date` joins `foods(name, source)`) and `calculations.macros_from_entries` sums them vs goals
 2. Progress bars show calories/protein/carbs/fats vs targets (remaining + %)
 3. Lists today's `logged_entries` (food name, amount in the unit it was logged, calories) via `get_entries_for_date`
 4. Delete button on each row opens an Are you sure? dialog, then `delete_logged_entry` (removes the log, not the food library item)
@@ -96,5 +96,5 @@ For mixed dishes you did not cook (pho, a restaurant plate). Homemade food you a
 | 3 | Manual food logging |
 | 4 | Weight tracking |
 | 5 | OCR label scanning |
-| 6 | Vision mixed-dish estimate (photo + weight + notes → Gemini 3.6 Flash) |
+| 6 | Vision mixed-dish estimate (photo + weight or size + notes → Gemini 3.6 Flash) |
 | 7 | Polish + Streamlit Community Cloud deploy |
