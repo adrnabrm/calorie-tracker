@@ -20,7 +20,7 @@ selected = st.date_input("Date", value="today", max_value="today")
 day = selected.isoformat()
 
 entries = get_entries_for_date(day)
-stats = macros_from_entries(entries)
+stats = macros_from_entries(entries, day)
 
 if not stats["targets"]:
     st.info("Set your targets on the Goals & Settings page first.")
