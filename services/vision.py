@@ -45,20 +45,31 @@ def estimate(
 ) -> FoodEstimate:
     parts = [
         "Estimate calories and macros for the food in this photo.",
-        "This is a mixed dish. Split it into visible parts (broth, noodles, meat, etc.).",
+        "If the dish has distinct visible parts (broth, noodles, meat, vegetables, sauce, etc.), split it into components. If it is a single food, use one row.",
         "Grams are food-only, not the bowl or plate.",
-        "Component grams must add up to the portion grams.",
-        "Always include at least one component. If you cannot split the dish, use one row for the whole portion.",
+        "Component grams must add up to the total portion grams.",
+        "Always include at least one component.",
         "Set is_food to false if this image is not food.",
+    ]
+    if notes.strip():
+        parts.append(
+            f"User context (use throughout your estimate for identification, preparation method, and portion adjustments): {notes.strip()}"
+        )
+    parts += [
+        "Account for visible oil, sauce, glaze, or char — these add significant calories even if the component itself looks lean.",
+        "For soups, broths, or curries, do not treat the liquid as calorie-free; estimate calorie density from visible richness, sheen, or opacity.",
+        "For each component, note the assumed preparation method and the reference density you used (e.g. 'grilled chicken breast, ~165 kcal/100g USDA') in the reasoning field. Use USDA standard cooked weights and densities as your reference.",
     ]
     if grams is not None:
         parts.append(f"The user weighed the food at {grams:g} grams. Use that as the total.")
     elif size:
-        parts.append(
-            f"No scale. Treat portion size as {size} for this kind of dish and guess total grams."
-        )
-    if notes.strip():
-        parts.append(f"User notes: {notes.strip()}")
+        size_anchors = {
+            "small": "roughly 60% of a typical portion for this dish",
+            "typical": "a standard single-serving portion for this dish",
+            "large": "roughly 140% of a typical portion for this dish",
+        }
+        anchor = size_anchors.get(size.lower(), "a standard portion")
+        parts.append(f"No scale. Treat portion size as {size} ({anchor}) and estimate total grams accordingly.")
     result = generate(
         " ".join(parts),
         FoodEstimate,
