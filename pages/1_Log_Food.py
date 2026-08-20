@@ -1,5 +1,6 @@
-from datetime import date
+from datetime import datetime
 from typing import Literal
+from zoneinfo import ZoneInfo
 
 import streamlit as st
 from models.schemas import Food, LoggedEntry, Meal, MealIngredient
@@ -24,12 +25,18 @@ _SIZES: tuple[Literal["Small", "Typical", "Large"], ...] = ("Small", "Typical", 
 st.set_page_config(page_title="Log Food", layout="centered")
 st.title("Log Food")
 
+_tz = ZoneInfo(st.context.timezone or "UTC")
+
+
+def _today() -> str:
+    return datetime.now(_tz).date().isoformat()
+
 
 def log_today(food: dict, eaten_grams: float, unit: str) -> None:
     macros = scale_macros(food, eaten_grams)
     insert_logged_entry(
         LoggedEntry(
-            date=date.today().isoformat(),
+            date=_today(),
             weight_grams=eaten_grams,
             calories=macros["calories"],
             protein=macros["protein"],
@@ -347,7 +354,7 @@ with recipes_tab:
                 else:
                     insert_logged_entry(
                         LoggedEntry(
-                            date=date.today().isoformat(),
+                            date=_today(),
                             meal_id=recipe_id,
                             food_id=None,
                             weight_grams=serving_grams,

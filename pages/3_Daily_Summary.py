@@ -1,3 +1,6 @@
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
 import streamlit as st
 from services.calculations import format_weight, macros_from_entries
 from services.db import delete_logged_entry, get_entries_for_date
@@ -16,7 +19,8 @@ def confirm_delete_log(entry_id: str, name: str, day: str) -> None:
             delete_logged_entry(entry_id)
             st.rerun()
 
-selected = st.date_input("Date", value="today", max_value="today")
+_today = datetime.now(ZoneInfo(st.context.timezone or "UTC")).date()
+selected = st.date_input("Date", value=_today, max_value=_today)
 day = selected.isoformat()
 
 entries = get_entries_for_date(day)

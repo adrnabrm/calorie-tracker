@@ -1,4 +1,5 @@
-from datetime import date
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 import altair as alt
 import pandas as pd
@@ -21,8 +22,10 @@ def confirm_delete_weight(log_id: str, log_date: str, weight: float) -> None:
             st.rerun()
 
 
+_today = datetime.now(ZoneInfo(st.context.timezone or "UTC")).date()
+
 with st.form("weight_form"):
-    log_date = st.date_input("Date", value=date.today())
+    log_date = st.date_input("Date", value=_today)
     weight = st.number_input(
         "Weight (lbs)",
         min_value=0.1,
