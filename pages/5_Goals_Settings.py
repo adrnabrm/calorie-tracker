@@ -1,3 +1,6 @@
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
 import streamlit as st
 from models.schemas import Goals
 from services.db import get_goals_for_date, upsert_goals
@@ -5,7 +8,8 @@ from services.db import get_goals_for_date, upsert_goals
 st.set_page_config(page_title="Goals & Settings", layout="centered")
 st.title("Goals & Settings")
 
-selected = st.date_input("Date", value="today", max_value="today")
+_today = datetime.now(ZoneInfo(st.context.timezone or "UTC")).date()
+selected = st.date_input("Date", value=_today, max_value=_today)
 day = selected.isoformat()
 existing = get_goals_for_date(day) or {}
 
