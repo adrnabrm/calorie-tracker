@@ -27,20 +27,14 @@ def get_food_by_id(food_id: str) -> dict | None:
     return res.data[0] if res.data else None
 
 
-def search_foods(query: str) -> list[dict]:
-    res = (
-        _client.table("foods")
-        .select("*")
-        .ilike("name", f"%{query}%")
-        .order("name")
-        .execute()
-    )
-    return res.data
-
-
 def get_all_foods() -> list[dict]:
     res = _client.table("foods").select("*").order("name").execute()
     return res.data
+
+
+def update_food(food_id: str, updates: dict) -> dict:
+    res = _client.table("foods").update(updates).eq("id", food_id).execute()
+    return res.data[0]
 
 
 def delete_food(food_id: str) -> None:
@@ -121,6 +115,31 @@ def get_entries_for_date(date: str) -> list[dict]:
         .execute()
     )
     return res.data
+
+
+def update_logged_entry(
+    entry_id: str,
+    weight_grams: float,
+    calories: float,
+    protein: float,
+    carbs: float,
+    fats: float,
+) -> dict:
+    res = (
+        _client.table("logged_entries")
+        .update(
+            {
+                "weight_grams": weight_grams,
+                "calories": calories,
+                "protein": protein,
+                "carbs": carbs,
+                "fats": fats,
+            }
+        )
+        .eq("id", entry_id)
+        .execute()
+    )
+    return res.data[0]
 
 
 def delete_logged_entry(entry_id: str) -> None:

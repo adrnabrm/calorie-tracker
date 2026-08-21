@@ -15,6 +15,7 @@ from services.db import (
     insert_logged_entry,
     insert_meal,
     insert_meal_ingredient,
+    update_food,
 )
 from services.gemini import GeminiError
 from services.vision import estimate
@@ -26,17 +27,16 @@ st.set_page_config(page_title="Log Food", layout="centered")
 st.title("Log Food")
 
 _tz = ZoneInfo(st.context.timezone or "UTC")
+_today_date = datetime.now(_tz).date()
+
+_log_date = st.date_input("Log date", value=_today_date, max_value=_today_date).isoformat()
 
 
-def _today() -> str:
-    return datetime.now(_tz).date().isoformat()
-
-
-def log_today(food: dict, eaten_grams: float, unit: str) -> None:
+def log_for_date(food: dict, eaten_grams: float, unit: str) -> None:
     macros = scale_macros(food, eaten_grams)
     insert_logged_entry(
         LoggedEntry(
-            date=_today(),
+            date=_log_date,
             weight_grams=eaten_grams,
             calories=macros["calories"],
             protein=macros["protein"],
@@ -46,6 +46,41 @@ def log_today(food: dict, eaten_grams: float, unit: str) -> None:
             weight_unit=unit,
         )
     )
+
+
+@st.dialog("Edit food")
+def edit_food_dialog(food: dict) -> None:
+    unit = food.get("serving_unit") or "g"
+    raw_grams = float(food["serving_grams"])
+    display_size = raw_grams if unit == "g" else raw_grams / 28.3495
+    with st.form("edit_food_form"):
+        name = st.text_input("Name", value=food["name"])
+        serving_size = st.number_input("Serving size", min_value=0.1, value=display_size, step=1.0)
+        serving_unit = st.segmented_control("Serving unit", ["g", "oz"], default=unit, key="edit_serving_unit")
+        calories = st.number_input("Calories (per serving)", min_value=0.0, value=float(food["calories"]), step=1.0)
+        protein = st.number_input("Protein (g)", min_value=0.0, value=float(food["protein"]), step=0.1)
+        carbs = st.number_input("Carbs (g)", min_value=0.0, value=float(food["carbs"]), step=0.1)
+        fats = st.number_input("Fats (g)", min_value=0.0, value=float(food["fats"]), step=0.1)
+        saved = st.form_submit_button("Save")
+    if saved:
+        if not name.strip():
+            st.warning("Enter a name.")
+        else:
+            new_unit = serving_unit or "g"
+            update_food(
+                food["id"],
+                {
+                    "name": name.strip(),
+                    "calories": calories,
+                    "protein": protein,
+                    "carbs": carbs,
+                    "fats": fats,
+                    "serving_grams": to_grams(serving_size, new_unit),
+                    "serving_unit": new_unit,
+                },
+            )
+            load_foods.clear()
+            st.rerun()
 
 
 @st.dialog("Are you sure?")
@@ -141,8 +176,20 @@ with library_tab:
             lib_unit = st.segmented_control(
                 "Unit", ["serving", "g", "oz"], default="serving", key=f"lib_unit_{food_id}"
             )
+            _unit_for_preview = lib_unit or "serving"
+            _preview_grams = (
+                lib_eaten * float(food["serving_grams"])
+                if _unit_for_preview == "serving"
+                else to_grams(lib_eaten, _unit_for_preview)
+            )
+            _preview = scale_macros(food, _preview_grams)
+            st.caption(
+                f"→ {_preview['calories']:.0f} cal, "
+                f"{_preview['protein']:.0f}p / {_preview['carbs']:.0f}c / {_preview['fats']:.0f}f"
+            )
             with st.container(horizontal=True):
                 log_clicked = st.button("Log")
+                edit_clicked = st.button("Edit")
                 del_clicked = st.button("Delete from library")
             if log_clicked:
                 unit = lib_unit or "serving"
@@ -150,8 +197,10 @@ with library_tab:
                     eaten_grams = lib_eaten * float(food["serving_grams"])
                 else:
                     eaten_grams = to_grams(lib_eaten, unit)
-                log_today(food, eaten_grams, unit)
+                log_for_date(food, eaten_grams, unit)
                 st.success("Logged.")
+            if edit_clicked:
+                edit_food_dialog(food)
             if del_clicked:
                 confirm_delete_food(food_id, food["name"])
 
@@ -195,7 +244,7 @@ with new_tab:
                         source="manual",
                     )
                 )
-                log_today(row, to_grams(new_eaten, eaten_unit), eaten_unit)
+                log_for_date(row, to_grams(new_eaten, eaten_unit), eaten_unit)
                 load_foods.clear()
                 st.success("Saved and logged.")
 
@@ -304,7 +353,7 @@ with photo_tab:
                                 source="estimated",
                             )
                         )
-                        log_today(row, total_g, "g")
+                        log_for_date(row, total_g, "g")
                         load_foods.clear()
                         st.session_state.vision_estimate = None
                         st.session_state.vision_error = None
@@ -354,7 +403,7 @@ with recipes_tab:
                 else:
                     insert_logged_entry(
                         LoggedEntry(
-                            date=_today(),
+                            date=_log_date,
                             meal_id=recipe_id,
                             food_id=None,
                             weight_grams=serving_grams,

@@ -1,4 +1,4 @@
-from services.db import get_entries_for_date, get_goals_for_date
+from services.db import get_goals_for_date
 
 _KEYS = ("calories", "protein", "carbs", "fats")
 OZ_TO_G = 28.3495
@@ -55,8 +55,3 @@ def macros_from_entries(entries: list[dict], date: str) -> dict:
     if not goals:
         return {"eaten": totals, "targets": None, "remaining": None, "pct": None}
     return compare_to_goals(totals, goals)
-
-
-def macros_for_date(date: str) -> dict:
-    """Sum that day's logged entries and compare them to that day's goals."""
-    return macros_from_entries(get_entries_for_date(date), date)

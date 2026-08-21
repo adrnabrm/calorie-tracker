@@ -106,4 +106,5 @@ if submitted:
                 source="ocr",
             )
         )
+        st.cache_data.clear()
         st.success("Saved to library.")
