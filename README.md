@@ -26,25 +26,7 @@ A personal calorie and macro tracker that replaces paid apps (Cal AI, MyFitnessP
 
 ## Setup
 
-1. Clone the repo and install dependencies:
-
-```bash
-pip install -r requirements.txt
-```
-
-2. Copy `.env.example` to `.env` and fill in your keys:
-
-```
-SUPABASE_URL=...
-SUPABASE_KEY=...
-GEMINI_API_KEY=...
-```
-
-3. Run locally:
-
-```bash
-streamlit run app.py
-```
+> **Note:** This app is wired to a personal Supabase instance and is not intended for public use. The database, credentials, and schema are private — there is no setup path for other users.
 
 ## Project Structure
 
