@@ -1,7 +1,10 @@
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
 import streamlit as st
-from models.schemas import Food
+from models.schemas import Food, LoggedEntry
 from services.calculations import to_grams
-from services.db import insert_food
+from services.db import insert_food, insert_logged_entry
 from services.gemini import GeminiError
 from services.ocr import read_label
 
@@ -46,18 +49,18 @@ if not label.found_label:
 ocr_id = st.session_state.ocr_id
 with st.form("confirm_ocr"):
     name = st.text_input("Name")
+    serving_unit = st.segmented_control(
+        "Serving unit",
+        ["g", "oz", "serving"],
+        default=label.serving_unit,
+        key=f"ocr_unit_{ocr_id}",
+    )
     serving_size = st.number_input(
-        "Serving size",
+        "Serving size (g per serving if unit is 'serving')",
         min_value=0.1,
         value=max(float(label.serving_size), 0.1),
         step=1.0,
         key=f"ocr_serving_{ocr_id}",
-    )
-    serving_unit = st.segmented_control(
-        "Serving unit",
-        ["g", "oz"],
-        default=label.serving_unit,
-        key=f"ocr_unit_{ocr_id}",
     )
     calories = st.number_input(
         "Calories (per serving)",
@@ -87,24 +90,45 @@ with st.form("confirm_ocr"):
         step=0.1,
         key=f"ocr_fat_{ocr_id}",
     )
-    submitted = st.form_submit_button("Save to library")
+    col1, col2 = st.columns(2)
+    with col1:
+        submitted = st.form_submit_button("Save to library")
+    with col2:
+        save_and_log = st.form_submit_button("Save and log 1 serving", type="primary")
 
-if submitted:
+if submitted or save_and_log:
     if not name.strip():
         st.warning("Enter a name.")
     else:
         unit = serving_unit or "g"
-        insert_food(
+        sg = serving_size if unit == "serving" else to_grams(serving_size, unit)
+        food_row = insert_food(
             Food(
                 name=name.strip(),
                 calories=calories,
                 protein=protein,
                 carbs=carbs,
                 fats=fats,
-                serving_grams=to_grams(serving_size, unit),
+                serving_grams=sg,
                 serving_unit=unit,
                 source="ocr",
             )
         )
         st.cache_data.clear()
-        st.success("Saved to library.")
+        if save_and_log:
+            today = datetime.now(ZoneInfo(st.context.timezone or "UTC")).date().isoformat()
+            insert_logged_entry(
+                LoggedEntry(
+                    date=today,
+                    food_id=food_row["id"],
+                    weight_grams=sg,
+                    calories=calories,
+                    protein=protein,
+                    carbs=carbs,
+                    fats=fats,
+                    weight_unit="serving",
+                )
+            )
+            st.success("Saved and logged 1 serving.")
+        else:
+            st.success("Saved to library.")

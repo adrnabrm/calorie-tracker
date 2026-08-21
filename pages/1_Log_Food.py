@@ -56,7 +56,7 @@ def edit_food_dialog(food: dict) -> None:
     with st.form("edit_food_form"):
         name = st.text_input("Name", value=food["name"])
         serving_size = st.number_input("Serving size", min_value=0.1, value=display_size, step=1.0)
-        serving_unit = st.segmented_control("Serving unit", ["g", "oz"], default=unit, key="edit_serving_unit")
+        serving_unit = st.segmented_control("Serving unit", ["g", "oz", "serving"], default=unit, key="edit_serving_unit")
         calories = st.number_input("Calories (per serving)", min_value=0.0, value=float(food["calories"]), step=1.0)
         protein = st.number_input("Protein (g)", min_value=0.0, value=float(food["protein"]), step=0.1)
         carbs = st.number_input("Carbs (g)", min_value=0.0, value=float(food["carbs"]), step=0.1)
@@ -67,6 +67,7 @@ def edit_food_dialog(food: dict) -> None:
             st.warning("Enter a name.")
         else:
             new_unit = serving_unit or "g"
+            new_sg = serving_size if new_unit == "serving" else to_grams(serving_size, new_unit)
             update_food(
                 food["id"],
                 {
@@ -75,7 +76,7 @@ def edit_food_dialog(food: dict) -> None:
                     "protein": protein,
                     "carbs": carbs,
                     "fats": fats,
-                    "serving_grams": to_grams(serving_size, new_unit),
+                    "serving_grams": new_sg,
                     "serving_unit": new_unit,
                 },
             )
@@ -208,21 +209,24 @@ with new_tab:
     if new_tab.open:
         with st.form("new_food"):
             name = st.text_input("Name")
-            serving_size = st.number_input(
-                "Serving size", min_value=0.1, value=1.0, step=1.0
-            )
             serving_unit = st.segmented_control(
-                "Serving unit", ["g", "oz"], default="g", key="new_serving_unit"
+                "Serving unit", ["g", "oz", "serving"], default="g", key="new_serving_unit"
+            )
+            serving_size = st.number_input(
+                "Serving size (g per serving if unit is 'serving')",
+                min_value=0.1,
+                value=100.0,
+                step=1.0,
             )
             calories = st.number_input("Calories (per serving)", min_value=0.0, step=1.0)
             protein = st.number_input("Protein (g, per serving)", min_value=0.0, step=0.1)
             carbs = st.number_input("Carbs (g, per serving)", min_value=0.0, step=0.1)
             fats = st.number_input("Fats (g, per serving)", min_value=0.0, step=0.1)
             new_eaten = st.number_input(
-                "Amount eaten", min_value=0.1, value=1.0, step=1.0, key="new_eaten"
+                "Amount eaten", min_value=0.1, value=1.0, step=0.5, key="new_eaten"
             )
             new_unit = st.segmented_control(
-                "Eaten unit", ["g", "oz"], default="g", key="new_eaten_unit"
+                "Eaten unit", ["serving", "g", "oz"], default="serving", key="new_eaten_unit"
             )
             submitted = st.form_submit_button("Save and log")
         if submitted:
@@ -230,8 +234,9 @@ with new_tab:
                 st.warning("Enter a name.")
             else:
                 unit = serving_unit or "g"
-                eaten_unit = new_unit or unit
-                serving_grams = to_grams(serving_size, unit)
+                sg = serving_size if unit == "serving" else to_grams(serving_size, unit)
+                eaten_unit = new_unit or "serving"
+                eaten_grams = new_eaten * sg if eaten_unit == "serving" else to_grams(new_eaten, eaten_unit)
                 row = insert_food(
                     Food(
                         name=name.strip(),
@@ -239,12 +244,12 @@ with new_tab:
                         protein=protein,
                         carbs=carbs,
                         fats=fats,
-                        serving_grams=serving_grams,
+                        serving_grams=sg,
                         serving_unit=unit,
                         source="manual",
                     )
                 )
-                log_for_date(row, to_grams(new_eaten, eaten_unit), eaten_unit)
+                log_for_date(row, eaten_grams, eaten_unit)
                 load_foods.clear()
                 st.success("Saved and logged.")
 
