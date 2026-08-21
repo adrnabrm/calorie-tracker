@@ -207,17 +207,17 @@ with library_tab:
 
 with new_tab:
     if new_tab.open:
+        _new_serving_unit = st.segmented_control(
+            "Serving unit", ["g", "oz", "serving"], default="g", key="new_serving_unit"
+        )
         with st.form("new_food"):
             name = st.text_input("Name")
-            serving_unit = st.segmented_control(
-                "Serving unit", ["g", "oz", "serving"], default="g", key="new_serving_unit"
-            )
-            serving_size = st.number_input(
-                "Serving size (g per serving if unit is 'serving')",
-                min_value=0.1,
-                value=100.0,
-                step=1.0,
-            )
+            if (_new_serving_unit or "g") != "serving":
+                serving_size = st.number_input(
+                    "Serving size", min_value=0.1, value=100.0, step=1.0
+                )
+            else:
+                serving_size = 100.0
             calories = st.number_input("Calories (per serving)", min_value=0.0, step=1.0)
             protein = st.number_input("Protein (g, per serving)", min_value=0.0, step=0.1)
             carbs = st.number_input("Carbs (g, per serving)", min_value=0.0, step=0.1)
@@ -233,7 +233,7 @@ with new_tab:
             if not name.strip():
                 st.warning("Enter a name.")
             else:
-                unit = serving_unit or "g"
+                unit = _new_serving_unit or "g"
                 sg = serving_size if unit == "serving" else to_grams(serving_size, unit)
                 eaten_unit = new_unit or "serving"
                 eaten_grams = new_eaten * sg if eaten_unit == "serving" else to_grams(new_eaten, eaten_unit)

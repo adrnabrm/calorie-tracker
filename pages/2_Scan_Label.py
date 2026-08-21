@@ -47,21 +47,24 @@ if not label.found_label:
     st.stop()
 
 ocr_id = st.session_state.ocr_id
+_ocr_serving_unit = st.segmented_control(
+    "Serving unit",
+    ["g", "oz", "serving"],
+    default=label.serving_unit,
+    key=f"ocr_unit_{ocr_id}",
+)
 with st.form("confirm_ocr"):
     name = st.text_input("Name")
-    serving_unit = st.segmented_control(
-        "Serving unit",
-        ["g", "oz", "serving"],
-        default=label.serving_unit,
-        key=f"ocr_unit_{ocr_id}",
-    )
-    serving_size = st.number_input(
-        "Serving size (g per serving if unit is 'serving')",
-        min_value=0.1,
-        value=max(float(label.serving_size), 0.1),
-        step=1.0,
-        key=f"ocr_serving_{ocr_id}",
-    )
+    if (_ocr_serving_unit or "g") != "serving":
+        serving_size = st.number_input(
+            "Serving size",
+            min_value=0.1,
+            value=max(float(label.serving_size), 0.1),
+            step=1.0,
+            key=f"ocr_serving_{ocr_id}",
+        )
+    else:
+        serving_size = 100.0
     calories = st.number_input(
         "Calories (per serving)",
         min_value=0.0,
@@ -100,7 +103,7 @@ if submitted or save_and_log:
     if not name.strip():
         st.warning("Enter a name.")
     else:
-        unit = serving_unit or "g"
+        unit = _ocr_serving_unit or "g"
         sg = serving_size if unit == "serving" else to_grams(serving_size, unit)
         food_row = insert_food(
             Food(
