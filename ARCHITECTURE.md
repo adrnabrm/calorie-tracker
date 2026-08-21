@@ -30,13 +30,13 @@ calorie-tracker/
 │   └── 5_Goals_Settings.py   # Calorie/macro target input
 │
 ├── services/                 # All business logic, no UI code
-│   ├── db.py                 # Supabase client + CRUD
-│   ├── gemini.py             # Shared Gemini client + generate() (Pydantic structured output; model per call)
-│   ├── vision.py             # Gemini 3.6 Flash: mixed-dish estimate from photo + weight or size + notes
-│   ├── ocr.py                # Gemini 3.1 Flash-Lite: nutrition label reading
-│   ├── nutrition_api.py      # Stub — USDA is not part of v1 vision
-│   ├── estimator.py          # Stub — old USDA fallback; estimates live in vision.py
-│   └── calculations.py       # Macro/calorie math
+│   ├── db.py                 # Supabase client + CRUD; includes update_food, update_logged_entry
+    │   ├── gemini.py             # Shared Gemini client + generate() (Pydantic structured output; model per call)
+    │   ├── vision.py             # Gemini 3.6 Flash: mixed-dish estimate from photo + weight or size + notes
+    │   ├── ocr.py                # Gemini 3.1 Flash-Lite: nutrition label reading
+    │   ├── nutrition_api.py      # Stub — USDA is not part of v1 vision
+    │   ├── estimator.py          # Stub — old USDA fallback; estimates live in vision.py
+    │   └── calculations.py       # Macro/calorie math (no DB imports; pure functions only)
 │
 ├── models/
 │   └── schemas.py            # Dataclasses + NutritionLabel + vision estimate Pydantic models
@@ -47,7 +47,7 @@ calorie-tracker/
 
 ## Database Schema (Supabase)
 
-- `foods` — `id, name, calories, protein, carbs, fats, serving_grams, serving_unit: g|oz, source: manual|vision|ocr|estimated`
+- `foods` — `id, name, calories, protein, carbs, fats, serving_grams, serving_unit: g|oz|serving, source: manual|vision|ocr|estimated`
 - `meals` — `id, name, type: composed|simple`
 - `meal_ingredients` — `meal_id, food_id, weight_grams` (join table for composed meals)
 - `logged_entries` — `id, date, food_id?, meal_id?, weight_grams, weight_unit: g|oz|serving, calories, protein, carbs, fats`
@@ -68,19 +68,21 @@ For mixed dishes you did not cook (pho, a restaurant plate). Homemade food you a
 ### Daily summary
 1. `pages/3_Daily_Summary.py` date picker (default today, no future dates). `get_entries_for_date` joins `foods(name, source)`; `calculations.macros_from_entries` sums that day vs `get_goals_for_date` (latest `goals` row with `date` ≤ selected day)
 2. Progress bars show calories/protein/carbs/fats vs targets (remaining + %)
-3. Lists that day's `logged_entries` (food name, amount in the unit it was logged, calories)
-4. Delete button on each row opens an Are you sure? dialog, then `delete_logged_entry` (removes the log, not the food library item)
+3. Lists that day's `logged_entries` (food name, amount in the unit it was logged, calories, and protein/carbs/fats breakdown)
+4. Edit button on each row opens a dialog to adjust the amount in its original unit; macros are rescaled proportionally via `update_logged_entry`
+5. Delete button on each row opens an Are you sure? dialog, then `delete_logged_entry` (removes the log, not the food library item)
 
 ### Goals
 1. `pages/5_Goals_Settings.py` date picker + form. `upsert_goals` writes one row per date (second save that day overwrites)
 2. A day's Daily Summary uses the latest `goals` row with `date` ≤ that day
 
 ### Manual workflow
-1. User enters name, label serving size (g or oz), and nutrition per serving → `foods` (source = `manual`). Serving is stored as grams (`1 oz = 28.3495 g`) plus `serving_unit` for display
-2. Amount eaten (g or oz) is converted to grams. `calculations.scale_macros` scales by `eaten_grams / serving_grams`
-3. `db.py` writes `logged_entries` for today with `weight_unit`
-4. Reusable: search `foods`, pick one, enter amount (unit defaults to that food's `serving_unit`), log again
-5. Delete from library opens an Are you sure? dialog, then `delete_food` (clears `food_id` on existing logs so the row can be removed; log macros stay)
+1. User enters name, serving unit (`g`, `oz`, or `serving`), and nutrition per serving → `foods` (source = `manual`). For `g`/`oz`, serving is stored as grams (`1 oz = 28.3495 g`). For `serving`, a 100 g nominal is stored silently so macros stay exact without the user needing to know the gram weight
+2. Amount eaten (`serving`, `g`, or `oz`) is converted to grams. `calculations.scale_macros` scales by `eaten_grams / serving_grams`
+3. `db.py` writes `logged_entries` for the date selected at the top of Log Food (defaults to today, no future dates)
+4. Reusable: search `foods`, pick one, enter amount (unit defaults to `serving`). Live macro preview updates as amount/unit changes before logging
+5. Edit food opens an Are you sure?-free dialog to update name, serving size/unit, and macros in place via `update_food`
+6. Delete from library opens an Are you sure? dialog, then `delete_food` (clears `food_id` on existing logs so the row can be removed; log macros stay)
 
 ### Weight tracking
 1. `pages/4_Weight_Tracker.py` form: date (default today) + weight in lbs → `upsert_weight_log` (one row per date; second save overwrites)
@@ -92,7 +94,8 @@ For mixed dishes you did not cook (pho, a restaurant plate). Homemade food you a
 1. User photos or uploads a nutrition label on `pages/2_Scan_Label.py`
 2. **Read label** → `ocr.py` calls `gemini.generate` (`gemini-3.1-flash-lite`, Interactions API) with `NutritionLabel` as the Pydantic JSON schema (`model_json_schema()` / `model_validate_json`). API/parse failures raise `GeminiError` (shown as "Gemini request failed"); a successful read with `found_label=false` is a different path
 3. Schema is serving size/unit + per-serving calories/protein/carbs/fats and `found_label`. Name is not extracted
-4. Confirm form: user types the name and can edit the numbers, then `insert_food` with source = `ocr`. Nothing is written to `logged_entries` (log later from Log Food)
+4. Confirm form: user picks serving unit (`g`, `oz`, or `serving`). If `serving` is selected, the gram input is hidden and 100 g nominal is used. User types the name and can edit the numbers
+5. Two actions: **Save to library** (`insert_food`, source = `ocr`) or **Save and log 1 serving** (same insert plus `insert_logged_entry` for today at 1 serving, `weight_unit="serving"`). Either clears the foods cache
 
 ## Implementation Phases
 
